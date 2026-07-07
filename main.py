@@ -1,0 +1,1192 @@
+# -*- coding: utf-8 -*-
+"""
+qclawTranslate v1.4 — 翻译+TTS（CosyVoice WS + MCI播放 + 原生热键）
+"""
+import sys, os, json, ssl, time, tempfile, threading, traceback, uuid, ctypes, urllib.request, urllib.parse, urllib.error
+from ctypes import wintypes
+
+# 在主线程提前加载 comtypes，避免后台线程首次 import 触发 COM 初始化冲突
+import comtypes.client as _cc
+from comtypes.gen.UIAutomationClient import CUIAutomation8 as _CUIA8, IUIAutomationTextPattern as _IUIA_TP
+
+from PyQt5.QtCore    import Qt, QTimer, pyqtSignal, QObject, QAbstractNativeEventFilter
+from PyQt5.QtGui     import QFont, QIcon
+from PyQt5.QtWidgets import *
+
+from config import load_config, save_config
+
+APP_NAME = "qclawTranslate"
+VERSION  = "1.4.0"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# ━━━━━━━━━━━━━━━━━━━━ 全局异常钩子 ━━━━━━━━━━━━━━━━━━━━
+_LOG_PATH = os.path.join(BASE_DIR, "error.log")
+
+def _log_error(exc_type, exc_value, exc_tb):
+    """所有未捕获异常写日志"""
+    with open(_LOG_PATH, "a", encoding="utf-8") as f:
+        f.write(f"\n{'='*60}\n")
+        f.write(f"[ERROR] {exc_type.__name__}: {exc_value}\n")
+        traceback.print_exception(exc_type, exc_value, exc_tb, file=f)
+    sys.__excepthook__(exc_type, exc_value, exc_tb)
+
+sys.excepthook = _log_error
+
+# ━━━━━━━━━━━━━━━━━━━━ QSS ━━━━━━━━━━━━━━━━━━━━
+QSS = r'''
+QMainWindow                 { background:#0d1117; }
+QWidget                     { font-family:"Segoe UI","Microsoft YaHei UI"; font-size:13px; color:#c9d1d9; }
+QFrame#card                 { background:#161b22; border:2px solid #21262d; border-radius:14px; }
+QTextEdit                   { background:#0d1117; border:2px solid #21262d; border-radius:12px; padding:14px 16px; color:#c9d1d9; font-size:14px; }
+QTextEdit:focus             { border:2px solid #58a6ff; background:#0d1117; }
+QTextEdit[readOnly="true"]  { background:#0d1117; }
+QScrollBar:vertical         { background:transparent; width:8px; margin:4px 0; }
+QScrollBar::handle:vertical { background:#30363d; border-radius:4px; min-height:36px; }
+QScrollBar::handle:vertical:hover { background:#58a6ff; }
+QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical { height:0px; }
+QScrollBar:horizontal       { background:transparent; height:8px; }
+QScrollBar::handle:horizontal { background:#30363d; border-radius:4px; min-width:36px; }
+QScrollBar::handle:horizontal:hover { background:#58a6ff; }
+QScrollBar::add-line:horizontal,QScrollBar::sub-line:horizontal { width:0px; }
+QComboBox                   { background:#21262d; border:2px solid #30363d; border-radius:10px; padding:8px 14px; color:#c9d1d9; font-size:13px; min-height:22px; }
+QComboBox:hover             { border-color:#58a6ff; }
+QComboBox:focus             { border-color:#58a6ff; background:#161b22; }
+QComboBox::drop-down        { border:none; padding-right:10px; width:24px; }
+QComboBox::down-arrow       { image:none; width:0px; }
+QComboBox QAbstractItemView { background:#161b22; border:2px solid #30363d; border-radius:8px; padding:6px; selection-background-color:#1f6feb44; outline:none; }
+QPushButton#btn-primary     { background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #3a5afc,stop:1 #5b7cff); color:#fff; border:none; border-radius:10px; padding:10px 24px; font-weight:600; font-size:13px; }
+QPushButton#btn-primary:hover   { background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #4e6eff,stop:1 #7890ff); }
+QPushButton#btn-primary:pressed { background:#2a4aec; }
+QPushButton#btn-primary:disabled { background:#21262d; color:#484f58; }
+QPushButton#btn-tts         { background:#21262d; color:#c9d1d9; border:2px solid #30363d; border-radius:10px; padding:10px 18px; font-weight:600; font-size:13px; }
+QPushButton#btn-tts:hover   { background:#30363d; border-color:#58a6ff; color:#58a6ff; }
+QPushButton#btn-tts:pressed { background:#161b22; }
+QPushButton#btn-swap        { background:#21262d; color:#8b949e; border:2px solid #30363d; border-radius:22px; font-size:18px; font-weight:bold; padding:0px; min-width:40px;max-width:40px;min-height:40px;max-height:40px; }
+QPushButton#btn-swap:hover  { background:#1f6feb33; border-color:#58a6ff; color:#58a6ff; }
+QPushButton#btn-settings    { background:transparent; color:#8b949e; border:2px solid #30363d; border-radius:10px; font-size:16px; padding:6px 12px; }
+QPushButton#btn-settings:hover { background:#30363d; color:#58a6ff; border-color:#58a6ff; }
+QDialog                     { background:#161b22; border:2px solid #30363d; border-radius:16px; }
+QLineEdit                   { background:#0d1117; border:2px solid #30363d; border-radius:10px; padding:10px 14px; color:#c9d1d9; font-size:13px; }
+QLineEdit:focus             { border-color:#58a6ff; background:#0d1117; }
+QLabel#status               { color:#8b949e; font-size:12px; }
+QLabel#section-title        { color:#e6edf3; font-size:15px; font-weight:700; }
+QTabWidget::pane            { background:#161b22; border:2px solid #30363d; border-radius:12px; top:-1px; }
+QTabBar::tab                { background:#21262d; color:#8b949e; border:2px solid #30363d; border-bottom:none; border-radius:10px 10px 0px 0px; padding:10px 22px; margin-right:3px; font-weight:600; }
+QTabBar::tab:selected       { background:#161b22; color:#58a6ff; border-bottom-color:#161b22; }
+QTabBar::tab:hover:!selected { background:#30363d; color:#c9d1d9; }
+QCheckBox                   { spacing:10px; }
+QCheckBox::indicator        { width:20px;height:20px;border-radius:5px;border:2px solid #30363d;background:#0d1117; }
+QCheckBox::indicator:checked { background:#58a6ff;border-color:#58a6ff; }
+QToolTip                    { background:#161b22; color:#c9d1d9; border:1px solid #30363d; border-radius:6px; padding:6px 10px; font-size:12px; }
+'''
+
+# ━━━━━━━━━━━━━━━━━━━━ 信号桥（线程→UI） ━━━━━━━━━━━━━━━━━━━━
+class _Bridge(QObject):
+    """跨线程信号桥：不依赖 QThread，纯 QObject"""
+    translate_result = pyqtSignal(dict)
+    tts_result       = pyqtSignal(tuple)
+    test_tr          = pyqtSignal(dict)
+    test_tts         = pyqtSignal(tuple)
+
+_bridge = _Bridge()  # 全局单例
+
+# ━━━━━━━━━━━━━━━━━━━━ 语言 ━━━━━━━━━━━━━━━━━━━━
+LANGUAGES = [
+    ("auto","🌐 自动检测"), ("zh-Hans","🇨🇳 中文简体"), ("zh-Hant","🇹🇼 中文繁体"),
+    ("en","🇺🇸 English"), ("ja","🇯🇵 日本語"), ("ko","🇰🇷 한국어"),
+    ("fr","🇫🇷 Français"), ("de","🇩🇪 Deutsch"), ("es","🇪🇸 Español"),
+    ("pt","🇵🇹 Português"), ("ru","🇷🇺 Русский"), ("ar","🇸🇦 العربية"),
+    ("it","🇮🇹 Italiano"), ("th","🇹🇭 ไทย"), ("vi","🇻🇳 Tiếng Việt"),
+    ("id","🇮🇩 Indonesia"), ("tr","🇹🇷 Türkçe"), ("nl","🇳🇱 Nederlands"),
+    ("pl","🇵🇱 Polski"), ("sv","🇸🇪 Svenska"),
+]
+
+_TTS_LANG = {"zh-Hans":"Chinese","zh-Hant":"Chinese","en":"English","ja":"Japanese",
+             "ko":"Korean","fr":"French","de":"German","es":"Spanish","pt":"Portuguese","ru":"Russian"}
+
+# ━━━━━━━━━━━━━━━━━━━━ 网络工具 ━━━━━━━━━━━━━━━━━━━━
+def _ssl():
+    c = ssl.create_default_context(); c.check_hostname = False; c.verify_mode = ssl.CERT_NONE; return c
+
+def _http_post(url, body_dict, headers_extra=None, timeout=20):
+    """HTTP POST JSON → (status, data_or_err)"""
+    hdrs = {"Content-Type":"application/json"}
+    if headers_extra: hdrs.update(headers_extra)
+    try:
+        req = urllib.request.Request(url, data=json.dumps(body_dict).encode("utf-8"), headers=hdrs)
+        resp = urllib.request.urlopen(req, context=_ssl(), timeout=timeout)
+        return True, json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        err = e.read().decode("utf-8", errors="replace")[:500]
+        return False, f"HTTP {e.code}: {err}"
+    except Exception as e:
+        return False, str(e)
+
+def _http_get_bytes(url, timeout=20):
+    """HTTP GET → (status, bytes_or_err)"""
+    try:
+        req = urllib.request.Request(url)
+        resp = urllib.request.urlopen(req, context=_ssl(), timeout=timeout)
+        return True, resp.read()
+    except urllib.error.HTTPError as e:
+        return False, f"HTTP {e.code}"
+    except Exception as e:
+        return False, str(e)
+
+# ━━━━━━━━━━━━━━━━━━━━ 翻译 ━━━━━━━━━━━━━━━━━━━━
+_GOOGLE_MAP = {"zh-Hans":"zh-CN","zh-Hant":"zh-TW","he":"iw","auto":"auto"}
+
+def _g(code):
+    return _GOOGLE_MAP.get(code, code.split("-")[0])
+
+def ai_translate(cfg, text, src_lang, tgt_lang):
+    """翻译主入口"""
+    if not text or not text.strip():
+        return {"success":False,"error":"文本为空"}
+
+    url     = cfg.get("translate_api_url","").strip()
+    api_key = cfg.get("translate_api_key","").strip()
+    model   = cfg.get("translate_model","qwen-plus").strip()
+
+    if url and api_key:
+        # OpenAI 兼容模式
+        src_name = dict(LANGUAGES).get(src_lang, src_lang)
+        tgt_name = dict(LANGUAGES).get(tgt_lang, tgt_lang)
+        src_d = src_name.split(" ",1)[-1] if " " in src_name else src_name
+        tgt_d = tgt_name.split(" ",1)[-1] if " " in tgt_name else tgt_name
+
+        sys_prompt = (f"你是一个专业的翻译引擎。将以下文本从{src_d}翻译成{tgt_d}。"
+                      f"只输出翻译结果，不要任何解释。保持格式和标点。")
+
+        body = {"model":model,"messages":[
+            {"role":"system","content":sys_prompt},
+            {"role":"user","content":text},
+        ],"temperature":0.3,"max_tokens":max(4096,len(text)*4)}
+
+        extra = cfg.get("translate_extra_body","").strip()
+        if extra:
+            try: body.update(json.loads(extra))
+            except: pass
+
+        ok, data = _http_post(url, body,
+                              {"Authorization":f"Bearer {api_key}","User-Agent":"qclawTranslate/1.3"},
+                              timeout=30)
+        if ok:
+            try:
+                content = data["choices"][0]["message"]["content"].strip()
+                return {"success":True,"text":content}
+            except Exception:
+                return {"success":False,"error":"响应格式异常"}
+        return {"success":False,"error":data}
+
+    # 兜底：Google 免费翻译
+    try:
+        p = {"client":"gtx","ie":"UTF-8","oe":"UTF-8","dj":1,
+             "dt":["t","bd","at","ex","ld","md","rw","rm","ss","qc"],
+             "sl":_g(src_lang),"tl":_g(tgt_lang),"q":text}
+        u = "https://translate.googleapis.com/translate_a/single?" + urllib.parse.urlencode(p, doseq=True)
+        ok, d = _http_get_bytes(u, timeout=10)
+        if ok:
+            d2 = json.loads(d.decode("utf-8"))
+            out = "".join(x.get("trans","") or x.get("text","") for x in d2.get("sentences",[]))
+            return {"success":True,"text":out.strip()}
+        return {"success":False,"error":f"Google: {d}"}
+    except Exception as e:
+        return {"success":False,"error":f"Google 翻译失败: {e}"}
+
+
+# ━━━━━━━━━━━━━━━━━━━━ TTS (CosyVoice WebSocket 流式) ━━━━━━━━━━━━━━━━━━━━
+
+def tts_synthesize(cfg, text, lang_hint=None):
+    """
+    CosyVoice WebSocket 流式 TTS。
+    返回 (ok, bytes_or_err) — bytes 直接是 MP3 二进制。
+    """
+    api_key = cfg.get("tts_api_key", "").strip()
+    ws_url  = cfg.get("tts_ws_url", "").strip()
+    model   = cfg.get("tts_model", "cosyvoice-v3-flash").strip()
+    voice   = cfg.get("tts_voice", "longanyang").strip()
+
+    if not api_key or not ws_url:
+        return False, "请先配置 TTS WebSocket 地址和 Key"
+
+    try:
+        import websocket
+    except ImportError:
+        return False, "缺少 websocket-client 库: pip install websocket-client"
+
+    task_id  = str(uuid.uuid4())
+    chunks   = []
+    error    = [None]
+    done     = threading.Event()
+
+    def _on_open(ws):
+        run_msg = {
+            "header": {"action": "run-task", "task_id": task_id, "streaming": "duplex"},
+            "payload": {
+                "task_group": "audio", "task": "tts", "function": "SpeechSynthesizer",
+                "model": model,
+                "parameters": {"text_type": "PlainText", "voice": voice, "format": "mp3",
+                               "sample_rate": 22050, "volume": 50, "rate": 1.0, "pitch": 1.0},
+                "input": {}
+            }
+        }
+        ws.send(json.dumps(run_msg))
+
+    def _on_msg(ws, msg):
+        if isinstance(msg, bytes):
+            chunks.append(msg)
+            return
+        try:
+            evt = json.loads(msg)
+            event = evt.get("header", {}).get("event", "")
+            if event == "task-started":
+                ws.send(json.dumps({
+                    "header": {"action": "continue-task", "task_id": task_id, "streaming": "duplex"},
+                    "payload": {"input": {"text": text}}
+                }))
+                ws.send(json.dumps({
+                    "header": {"action": "finish-task", "task_id": task_id, "streaming": "duplex"},
+                    "payload": {"input": {}}
+                }))
+            elif event == "task-failed":
+                error[0] = evt.get("header", {}).get("error_message", "Unknown")
+                done.set()
+            elif event == "task-finished":
+                done.set()
+        except Exception:
+            pass
+
+    def _on_err(ws, err):
+        error[0] = str(err)
+        done.set()
+
+    def _on_close(ws, code, msg):
+        if not done.is_set():
+            done.set()
+
+    ws_app = websocket.WebSocketApp(
+        ws_url,
+        header={"Authorization": f"Bearer {api_key}"},
+        on_open=_on_open, on_message=_on_msg, on_error=_on_err, on_close=_on_close
+    )
+    t = threading.Thread(
+        target=lambda: ws_app.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE}),
+        daemon=True
+    )
+    t.start()
+
+    if not done.wait(timeout=15):
+        ws_app.close()
+        return False, "TTS 超时"
+
+    if error[0]:
+        return False, error[0]
+
+    combined = b"".join(chunks)
+    if not combined:
+        return False, "TTS 返回空音频"
+    return True, combined
+
+
+def play_audio(audio_bytes):
+    """
+    MCI 无窗口播放 — 不弹任何播放器窗口。
+    在子线程同步播放，自动清理临时文件。
+    """
+    fd, path = tempfile.mkstemp(suffix=".mp3")
+    with os.fdopen(fd, "wb") as f:
+        f.write(audio_bytes)
+
+    def _mci_play():
+        alias = f"qtts_{uuid.uuid4().hex[:8]}"
+        try:
+            ctypes.windll.winmm.mciSendStringW(f'open "{path}" type MPEGVideo alias {alias}', None, 0, 0)
+            ctypes.windll.winmm.mciSendStringW(f'play {alias} wait', None, 0, 0)
+        finally:
+            ctypes.windll.winmm.mciSendStringW(f'close {alias}', None, 0, 0)
+            try: os.unlink(path)
+            except: pass
+
+    threading.Thread(target=_mci_play, daemon=True).start()
+
+
+# ━━━━━━━━━━━━━━━━━━━━ 后台线程 ━━━━━━━━━━━━━━━━━━━━
+def _bg_translate(cfg, text, src, dst):
+    """后台翻译线程 → 发信号到 UI"""
+    try:
+        result = ai_translate(cfg, text, src, dst)
+        _bridge.translate_result.emit(result)
+    except Exception as e:
+        _bridge.translate_result.emit({"success":False,"error":str(e)})
+
+def _bg_tts(cfg, text, lang):
+    try:
+        result = tts_synthesize(cfg, text, lang)
+        _bridge.tts_result.emit(result)
+    except Exception as e:
+        _bridge.tts_result.emit((False, str(e)))
+
+
+# ━━━━━━━━━━━━━━━━━━━━ 读选中文字（Windows UI Automation） ━━━━━━━━━━━━━━━━━━━━
+
+# 模块级缓存 UIA 对象，避免每次都重新创建
+_uia_cache = None
+
+def _get_uia():
+    global _uia_cache
+    if _uia_cache is None:
+        _uia_cache = _cc.CreateObject(_CUIA8)
+    return _uia_cache
+
+
+def _get_selected_text():
+    """
+    通过 Windows UI Automation 直接读取焦点窗口的选中文字。
+    零剪贴板、零按键模拟、零焦点争夺。
+    返回选中文本字符串；无选中或失败时返回 None。
+    """
+    text, _ = _get_selected_with_position()
+    return text
+
+
+def _get_selected_with_position():
+    """
+    双路读选中文字 + 坐标：UIA → Ctrl+C 回退。
+    Chrome 的 TextPattern 经常返回空串，UIA 能告诉"有选中"但读不出内容，
+    此时走 Ctrl+C 回退。
+    返回 (text_or_None, (screen_x, screen_y)_or_None)
+    """
+    pos = None
+    try:
+        uia = _get_uia()
+        element = uia.GetFocusedElement()
+        if element is None:
+            return None, None
+
+        tp = element.GetCurrentPattern(10014)  # UIA_TextPatternId
+        if tp is None:
+            return None, None
+
+        text_pattern = tp.QueryInterface(_IUIA_TP)
+        selection = text_pattern.GetSelection()
+        if selection is None or selection.Length == 0:
+            return None, None
+
+        # 读文字 + 取最后选段坐标
+        parts = []
+        last_rect = None
+        for i in range(selection.Length):
+            tr = selection.GetElement(i)
+            text = tr.GetText(-1)
+            if text:
+                parts.append(text)
+            # 坐标
+            try:
+                rects = tr.GetBoundingRectangles()
+                if rects and rects.Length > 0:
+                    last_rect = rects.GetElement(rects.Length - 1)
+            except:
+                pass
+
+        result = ''.join(parts).strip()
+
+        # Chrome 通病：有选中但文字为空 → Ctrl+C 回退
+        if not result:
+            fallback_text = _get_selected_via_clipboard()
+            if fallback_text:
+                result = fallback_text
+            else:
+                return None, None
+
+        # 坐标：用选中区域中点 x + 顶部 y（放工具栏上方）
+        if last_rect is not None:
+            mid_x = int((last_rect.left + last_rect.right) / 2)
+            pos = (mid_x, int(last_rect.top))
+        elif element.CurrentBoundingRectangle is not None:
+            r = element.CurrentBoundingRectangle
+            mid_x = int((r.left + r.right) / 2)
+            pos = (mid_x, int(r.top))
+        else:
+            pos = None
+
+        return result, pos
+
+    except Exception:
+        # UIA 完全失败 → 全走 Ctrl+C
+        return _get_selected_via_clipboard(), None
+
+
+_CB_LAST = b""
+
+# ━━ 内部选中文字存储 ━━
+_selection_store = ""
+
+def _get_selected_via_clipboard():
+    """
+    Ctrl+C 回退：复制到剪贴板再读。
+    使用 SendInput 模拟 Ctrl+C，不依赖 UIA。
+    """
+    global _CB_LAST
+    try:
+        import win32clipboard
+        user32 = ctypes.windll.user32
+
+        # 保存当前剪贴板内容
+        old_data = b""
+        old_open = False
+        try:
+            win32clipboard.OpenClipboard()
+            old_open = True
+            old_data_raw = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
+            if old_data_raw:
+                old_data = old_data_raw.encode('utf-16-le') if isinstance(old_data_raw, str) else old_data_raw
+        except:
+            pass
+        if old_open:
+            try: win32clipboard.CloseClipboard()
+            except: pass
+
+        # 发送 Ctrl+C（SendInput）
+        _send_ctrl_c()
+        time.sleep(0.15)  # 等剪贴板更新
+
+        # 读剪贴板
+        text = None
+        try:
+            win32clipboard.OpenClipboard()
+            cb_text = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
+            if cb_text and cb_text.strip():
+                text = cb_text.strip()
+        except:
+            pass
+        # 恢复旧内容
+        if old_data:
+            try:
+                win32clipboard.EmptyClipboard()
+                win32clipboard.SetClipboardData(win32clipboard.CF_UNICODETEXT, old_data)
+            except:
+                pass
+        try: win32clipboard.CloseClipboard()
+        except: pass
+
+        return text
+    except Exception:
+        return None
+
+
+def _send_ctrl_c():
+    """通过 SendInput 发送 Ctrl+C"""
+    from ctypes import byref, sizeof, Structure, Union, c_uint, c_ushort, c_long, c_ulong
+    import time as _time
+
+    class KEYBDINPUT(Structure):
+        _fields_ = [("wVk", c_ushort), ("wScan", c_ushort),
+                    ("dwFlags", c_ulong), ("time", c_ulong), ("dwExtraInfo", ctypes.POINTER(c_ulong))]
+
+    class INPUT_UNION(Union):
+        _fields_ = [("ki", KEYBDINPUT)]
+
+    class INPUT(Structure):
+        _fields_ = [("type", c_ulong), ("u", INPUT_UNION)]
+
+    KEYEVENTF_KEYUP = 0x0002
+    VK_CONTROL = 0x11
+    VK_C = 0x43
+
+    inputs = (INPUT * 4)()
+    # Ctrl down
+    inputs[0].type = 1
+    inputs[0].u.ki.wVk = VK_CONTROL
+    # C down
+    inputs[1].type = 1
+    inputs[1].u.ki.wVk = VK_C
+    # C up
+    inputs[2].type = 1
+    inputs[2].u.ki.wVk = VK_C
+    inputs[2].u.ki.dwFlags = KEYEVENTF_KEYUP
+    # Ctrl up
+    inputs[3].type = 1
+    inputs[3].u.ki.wVk = VK_CONTROL
+    inputs[3].u.ki.dwFlags = KEYEVENTF_KEYUP
+
+    ctypes.windll.user32.SendInput(4, byref(inputs), sizeof(INPUT))
+    _time.sleep(0.05)
+
+
+# ━━ 剪贴板安全读写 ━━
+def _get_clipboard_text():
+    """安全读取剪贴板文本，失败返回 None"""
+    try:
+        import win32clipboard
+        win32clipboard.OpenClipboard()
+        try:
+            if win32clipboard.IsClipboardFormatAvailable(win32clipboard.CF_UNICODETEXT):
+                return win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
+            return None
+        finally:
+            win32clipboard.CloseClipboard()
+    except Exception:
+        return None
+
+
+def _set_clipboard_text(text):
+    """安全写入剪贴板文本"""
+    try:
+        import win32clipboard
+        win32clipboard.OpenClipboard()
+        try:
+            win32clipboard.EmptyClipboard()
+            win32clipboard.SetClipboardData(win32clipboard.CF_UNICODETEXT, text)
+        finally:
+            win32clipboard.CloseClipboard()
+    except Exception:
+        pass
+
+
+def _wait_clipboard_change(old_content, timeout_ms=2000):
+    """轮询等待剪贴板内容变化，返回新内容；超时返回 None"""
+    import time as _time
+    deadline = _time.perf_counter() + timeout_ms / 1000.0
+    while _time.perf_counter() < deadline:
+        current = _get_clipboard_text()
+        if current is not None and current != old_content:
+            return current
+        _time.sleep(0.02)
+    return None
+
+
+# ━━ UIA 选中检测 ━━
+def _bring_to_front(hwnd):
+    """将指定窗口设为前台，AttachThreadInput 确保前台切换权限"""
+    user32 = ctypes.windll.user32
+    cur_hwnd = user32.GetForegroundWindow()
+    if cur_hwnd == hwnd:
+        return
+    cur_tid = user32.GetWindowThreadProcessId(cur_hwnd, None)
+    target_tid = user32.GetWindowThreadProcessId(hwnd, None)
+    if cur_tid != target_tid:
+        user32.AttachThreadInput(target_tid, cur_tid, True)
+    try:
+        user32.SetForegroundWindow(hwnd)
+        if user32.IsIconic(hwnd):
+            user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+    finally:
+        if cur_tid != target_tid:
+            user32.AttachThreadInput(target_tid, cur_tid, False)
+
+
+def _search_selection_recursive(uia, element, depth=0, max_depth=5, max_children=50):
+    """递归遍历 UIA 子元素树，检测 TextPattern 选中状态"""
+    if depth > max_depth:
+        return False
+    try:
+        tp = element.GetCurrentPattern(10014)
+        if tp:
+            try:
+                tpi = tp.QueryInterface(_IUIA_TP)
+                sel = tpi.GetSelection()
+                if sel and sel.Length > 0:
+                    return True
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    # 递归遍历子元素
+    try:
+        uia_children = element.FindAll(2, uia.CreateTrueCondition())
+        if uia_children is None or uia_children.Length == 0:
+            return False
+        count = min(uia_children.Length, max_children)
+        for i in range(count):
+            child = uia_children.GetElement(i)
+            if _search_selection_recursive(uia, child, depth + 1, max_depth, max_children):
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def _find_selection(hwnd):
+    """UIA 递归检测指定窗口中是否有文本被选中，返回 True/False"""
+    try:
+        uia = _get_uia()
+        element = uia.ElementFromHandle(hwnd)
+        if element is None:
+            return False
+        return _search_selection_recursive(uia, element)
+    except Exception:
+        return False
+
+
+# ━━ Ctrl+C 搬运文字 ━━
+def _copy_selection(hwnd):
+    """通过 Ctrl+C 从目标窗口搬运选中文字，所有分支恢复剪贴板"""
+    import win32clipboard
+
+    # 备份剪贴板
+    old_clipboard = _get_clipboard_text()
+
+    # 确保前台窗口是目标
+    _bring_to_front(hwnd)
+
+    # 发送 Ctrl+C
+    _send_ctrl_c()
+
+    # 轮询等待剪贴板变化
+    new_text = _wait_clipboard_change(old_clipboard, timeout_ms=2000)
+
+    # 恢复剪贴板（所有分支必须恢复）
+    if old_clipboard is not None:
+        _set_clipboard_text(old_clipboard)
+    else:
+        # 剪贴板原本无文本，清空
+        try:
+            win32clipboard.OpenClipboard()
+            try:
+                win32clipboard.EmptyClipboard()
+            finally:
+                win32clipboard.CloseClipboard()
+        except Exception:
+            pass
+
+    return new_text if new_text else ""
+
+
+# --- GetAsyncKeyState 热键轮询（替代 RegisterHotKey） ---
+VK_CONTROL = 0x11
+VK_Q = 0x51
+VK_E = 0x45
+
+
+# ━━━━━━━━━━━━━━━━━━━━ 设置对话框 ━━━━━━━━━━━━━━━━━━━━
+class SettingsDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setMinimumSize(540, 420)
+        self.cfg = load_config()
+        self._build()
+
+    def _fld(self, parent, label, value, placeholder="", password=False, tooltip=""):
+        row = QHBoxLayout()
+        lbl = QLabel(label); lbl.setFixedWidth(80); lbl.setStyleSheet("color:#8b949e;font-size:12px;")
+        if tooltip: lbl.setToolTip(tooltip)
+        ed = QLineEdit(value); ed.setPlaceholderText(placeholder)
+        if password: ed.setEchoMode(QLineEdit.Password)
+        row.addWidget(lbl); row.addWidget(ed,1); parent.addLayout(row)
+        return ed
+
+    def _build(self):
+        outer = QVBoxLayout(self); outer.setContentsMargins(0,0,0,0)
+        card = QFrame(objectName="card"); card.setStyleSheet("padding:20px;")
+        lay = QVBoxLayout(card); lay.setSpacing(6)
+
+        lay.addWidget(QLabel("⚙️  引擎设置", styleSheet="font-size:18px;font-weight:bold;color:#e6edf3;padding-bottom:12px;"))
+
+        tabs = QTabWidget()
+
+        # ── Tab 翻译 ──
+        t1 = QWidget(); t1l = QVBoxLayout(t1); t1l.setSpacing(10); t1l.setContentsMargins(16,16,16,16)
+        t1l.addWidget(QLabel("翻译引擎 — OpenAI /chat/completions 兼容", objectName="section-title"))
+        self.tr_url   = self._fld(t1l,"API 地址", self.cfg.get("translate_api_url",""),
+                                   "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions")
+        self.tr_key   = self._fld(t1l,"API Key",  self.cfg.get("translate_api_key",""), "sk-xx", password=True)
+        self.tr_model = self._fld(t1l,"模型名",   self.cfg.get("translate_model","qwen-plus"), "qwen-plus / qwen-turbo ...")
+        self.tr_extra = self._fld(t1l,"额外参数", self.cfg.get("translate_extra_body",""),'{"temperature":0.3}')
+        t1l.addSpacing(4); tr = QHBoxLayout(); tr.addStretch()
+        tb = QPushButton("🔍 测试连接"); tb.setObjectName("btn-tts")
+        self.tr_test = QLabel(""); self.tr_test.setStyleSheet("color:#484f58;font-size:11px;")
+        tb.clicked.connect(self._test_translate)
+        tr.addWidget(tb); tr.addWidget(self.tr_test); tr.addStretch(); t1l.addLayout(tr)
+        t1l.addStretch(); tabs.addTab(t1,"📝 翻译")
+
+        # ── Tab TTS ──
+        # ── Tab TTS (CosyVoice WebSocket) ──
+        t2 = QWidget(); t2l = QVBoxLayout(t2); t2l.setSpacing(10); t2l.setContentsMargins(16,16,16,16)
+        t2l.addWidget(QLabel("TTS 引擎 — CosyVoice WebSocket 流式", objectName="section-title"))
+        self.tts_ws    = self._fld(t2l,"WS 地址",  self.cfg.get("tts_ws_url",""),
+                                    "wss://ws-xxx.cn-beijing.maas.aliyuncs.com/api-ws/v1/inference")
+        self.tts_key   = self._fld(t2l,"API Key",  self.cfg.get("tts_api_key",""), "sk-xx", password=True)
+        self.tts_model = self._fld(t2l,"TTS 模型", self.cfg.get("tts_model","cosyvoice-v3-flash"), "cosyvoice-v3-flash")
+        self.tts_voice = self._fld(t2l,"音色",     self.cfg.get("tts_voice","longanyang"), "longanyang / longxiaochun ...")
+        t2l.addSpacing(4); tr2 = QHBoxLayout(); tr2.addStretch()
+        tb2 = QPushButton("🔊 试听"); tb2.setObjectName("btn-tts")
+        self.tts_test = QLabel(""); self.tts_test.setStyleSheet("color:#484f58;font-size:11px;")
+        tb2.clicked.connect(self._test_tts)
+        tr2.addWidget(tb2); tr2.addWidget(self.tts_test); tr2.addStretch(); t2l.addLayout(tr2)
+        t2l.addStretch(); tabs.addTab(t2,"🔊 TTS")
+
+        lay.addWidget(tabs)
+
+        # 通用
+        lay.addSpacing(8); br = QHBoxLayout()
+        br.addWidget(QLabel("开机自启")); self.boot = QCheckBox()
+        self.boot.setChecked(self.cfg.get("start_on_boot",False)); br.addStretch(); br.addWidget(self.boot)
+        lay.addLayout(br)
+
+        lay.addSpacing(4); bl = QHBoxLayout(); bl.addStretch()
+        c = QPushButton("取消"); c.setObjectName("btn-tts"); c.clicked.connect(self.reject)
+        s = QPushButton("保存"); s.setObjectName("btn-primary"); s.clicked.connect(self._save)
+        bl.addWidget(c); bl.addWidget(s); lay.addLayout(bl)
+
+        outer.addWidget(card)
+
+    def _save(self):
+        c = self.cfg
+        c["translate_api_url"]  = self.tr_url.text().strip()
+        c["translate_api_key"]  = self.tr_key.text().strip()
+        c["translate_model"]    = self.tr_model.text().strip()
+        c["translate_extra_body"] = self.tr_extra.text().strip()
+        c["tts_ws_url"]        = self.tts_ws.text().strip()
+        c["tts_api_key"]        = self.tts_key.text().strip()
+        c["tts_model"]          = self.tts_model.text().strip()
+        c["tts_voice"]          = self.tts_voice.text().strip()
+        c["start_on_boot"]      = self.boot.isChecked()
+        save_config(c); _toggle_startup(c["start_on_boot"])
+        self.accept()
+
+    def _test_translate(self):
+        cfg = {
+            "translate_api_url":self.tr_url.text().strip(),
+            "translate_api_key":self.tr_key.text().strip(),
+            "translate_model":self.tr_model.text().strip(),
+            "translate_extra_body":self.tr_extra.text().strip(),
+        }
+        if not cfg["translate_api_url"] or not cfg["translate_api_key"]:
+            self.tr_test.setText("❌ 请填写地址和Key"); self.tr_test.setStyleSheet("color:#f85149;font-size:11px;"); return
+        self.tr_test.setText("⏳ 测试中…"); self.tr_test.setStyleSheet("color:#d29922;font-size:11px;")
+
+        # 清理旧连接
+        try: _bridge.test_tr.disconnect()
+        except: pass
+        _bridge.test_tr.connect(self._on_test_tr)
+
+        threading.Thread(target=lambda: self._bg_test_tr(cfg), daemon=True).start()
+
+    def _bg_test_tr(self, cfg):
+        try:
+            r = ai_translate(cfg, "Hello world!", "en", "zh-Hans")
+            _bridge.test_tr.emit(r)
+        except Exception as e:
+            _bridge.test_tr.emit({"success":False,"error":str(e)})
+
+    def _on_test_tr(self, r):
+        if r["success"]:
+            self.tr_test.setText(f"✓ {r['text'][:40]}"); self.tr_test.setStyleSheet("color:#56d364;font-size:11px;")
+        else:
+            self.tr_test.setText(f"❌ {str(r.get('error',''))[:80]}"); self.tr_test.setStyleSheet("color:#f85149;font-size:11px;")
+
+    def _test_tts(self):
+        cfg = {
+            "tts_ws_url":self.tts_ws.text().strip(),
+            "tts_api_key":self.tts_key.text().strip(),
+            "tts_model":self.tts_model.text().strip(),
+            "tts_voice":self.tts_voice.text().strip(),
+        }
+        if not cfg["tts_ws_url"] or not cfg["tts_api_key"]:
+            self.tts_test.setText("❌ 请填写地址和Key"); self.tts_test.setStyleSheet("color:#f85149;font-size:11px;"); return
+        self.tts_test.setText("⏳ 合成中…"); self.tts_test.setStyleSheet("color:#d29922;font-size:11px;")
+
+        try: _bridge.test_tts.disconnect()
+        except: pass
+        _bridge.test_tts.connect(self._on_test_tts)
+
+        threading.Thread(target=lambda: self._bg_test_tts(cfg), daemon=True).start()
+
+    def _bg_test_tts(self, cfg):
+        try:
+            r = tts_synthesize(cfg, "你好世界", "zh-Hans")
+            _bridge.test_tts.emit(r)
+        except Exception as e:
+            _bridge.test_tts.emit((False, str(e)))
+
+    def _on_test_tts(self, r):
+        ok, data = r
+        if ok:
+            self.tts_test.setText("✓ 试听中…"); self.tts_test.setStyleSheet("color:#56d364;font-size:11px;")
+            threading.Thread(target=lambda: play_audio(data), daemon=True).start()
+        else:
+            self.tts_test.setText(f"❌ {str(data)[:80]}"); self.tts_test.setStyleSheet("color:#f85149;font-size:11px;")
+
+
+# ━━━━━━━━━━━━━━━━━━━━ 主窗口 ━━━━━━━━━━━━━━━━━━━━
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.cfg = load_config()
+        self._setup_window()
+        self._setup_ui()
+        self._setup_tray()
+        self._setup_hotkeys()
+        self._debounce = QTimer(singleShot=True, interval=400, timeout=self._do_translate)
+        self._last_text = ""
+        self._translating = False
+        self._tts_busy    = False
+
+    def _setup_window(self):
+        self.setWindowTitle(f"qclawTranslate")
+        self.setWindowIcon(QIcon(os.path.join(BASE_DIR, "qclaw.ico")))
+        self.setMinimumSize(700, 540); self.resize(820, 620)
+        r = QApplication.primaryScreen().geometry()
+        self.move((r.width()-820)//2, (r.height()-620)//2)
+        self.setStyleSheet(QSS)
+
+    def _setup_ui(self):
+        cw = QWidget(); cw.setStyleSheet("background:#0d1117;"); self.setCentralWidget(cw)
+        m = QVBoxLayout(cw); m.setContentsMargins(16,12,16,16); m.setSpacing(10)
+
+        # 标题栏
+        h = QHBoxLayout()
+        logo = QLabel("🦞", styleSheet="font-size:22px;padding:0 6px 0 0;")
+        h.addWidget(logo)
+        h.addWidget(QLabel("qclawTranslate", styleSheet="font-size:18px;font-weight:800;color:#58a6ff;"))
+        h.addStretch()
+        self.status = QLabel("就绪", objectName="status"); h.addWidget(self.status)
+        h.addSpacing(12)
+        hint = QLabel("Ctrl+Q 翻译  ·  Ctrl+E 朗读", styleSheet="color:#484f58;font-size:11px;")
+        h.addWidget(hint)
+        h.addSpacing(8)
+        sb = QPushButton("⚙"); sb.setObjectName("btn-settings"); sb.clicked.connect(self._settings); h.addWidget(sb)
+        m.addLayout(h)
+
+        # 语言栏
+        lb = QHBoxLayout(); lb.setSpacing(10)
+        self.src = QComboBox(); self.dst = QComboBox()
+        for code, label in LANGUAGES:
+            self.src.addItem(label, code); self.dst.addItem(label, code)
+        self.src.setCurrentIndex(0); self.dst.setCurrentIndex(3)
+        sw = QPushButton("⇄"); sw.setObjectName("btn-swap"); sw.clicked.connect(self._swap)
+        lb.addWidget(QLabel("源语言")); lb.addWidget(self.src,2)
+        lb.addWidget(sw,0,Qt.AlignCenter); lb.addWidget(QLabel("目标语言")); lb.addWidget(self.dst,2)
+        m.addLayout(lb)
+
+        # 输入
+        ic = QFrame(objectName="card"); il = QVBoxLayout(ic); il.setContentsMargins(6,6,6,6)
+        self.input_edit = QTextEdit(placeholderText="✍️ 输入文字，或选中后 Ctrl+Q 划词翻译…")
+        self.input_edit.setMinimumHeight(100)
+        self.input_edit.textChanged.connect(lambda: self._debounce.start())
+        il.addWidget(self.input_edit)
+        ib = QHBoxLayout(); ib.addStretch()
+        self.cc = QLabel("0 字符", styleSheet="color:#484f58;font-size:11px;"); ib.addWidget(self.cc); il.addLayout(ib)
+        m.addWidget(ic,2)
+
+        # 按钮
+        ab = QHBoxLayout(); ab.setSpacing(10)
+        self.btn_tr = QPushButton("🚀  翻译"); self.btn_tr.setObjectName("btn-primary")
+        self.btn_tr.setMinimumWidth(110); self.btn_tr.clicked.connect(self._on_click_translate)
+        self.btn_cp = QPushButton("📋 复制译文"); self.btn_cp.setObjectName("btn-tts")
+        self.btn_cp.clicked.connect(lambda: self._copy(self.output_edit.toPlainText()))
+        self.btn_src = QPushButton("🔊  朗读原文"); self.btn_src.setObjectName("btn-tts")
+        self.btn_src.clicked.connect(lambda: self._on_click_tts(self.input_edit.toPlainText()))
+        self.btn_dst = QPushButton("🔊  朗读译文"); self.btn_dst.setObjectName("btn-tts")
+        self.btn_dst.clicked.connect(lambda: self._on_click_tts(self.output_edit.toPlainText()))
+        ab.addWidget(self.btn_tr); ab.addWidget(self.btn_cp)
+        ab.addStretch(); ab.addWidget(self.btn_src); ab.addWidget(self.btn_dst)
+        m.addLayout(ab)
+
+        # 输出
+        oc = QFrame(objectName="card"); ol = QVBoxLayout(oc); ol.setContentsMargins(6,6,6,6)
+        self.output_edit = QTextEdit(readOnly=True, placeholderText="📝 翻译结果将显示在这里…")
+        self.output_edit.setMinimumHeight(100); ol.addWidget(self.output_edit)
+        m.addWidget(oc,3)
+
+        self.input_edit.textChanged.connect(lambda: self.cc.setText(f"{len(self.input_edit.toPlainText())} 字符"))
+
+        # 连接信号桥
+        _bridge.translate_result.connect(self._on_translate_result)
+        _bridge.tts_result.connect(self._on_tts_result)
+
+    # ── 托盘 ──
+    def _setup_tray(self):
+        self.tray = QSystemTrayIcon(self)
+        self.tray.setToolTip(f"{APP_NAME} v{VERSION} — 双击恢复窗口 | Ctrl+Q 翻译 | Ctrl+E 朗读")
+        mm = QMenu()
+        mm.setStyleSheet("QMenu{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:4px;}"
+                         "QMenu::item{padding:8px 24px;border-radius:4px;}"
+                         "QMenu::item:selected{background:#388bfd44;}")
+        mm.addAction("📋 显示窗口", self._show)
+        mm.addSeparator()
+        mm.addAction("🔍 划词翻译", self._clip_translate)
+        mm.addAction("🔊 划词朗读", self._clip_tts); mm.addSeparator()
+        mm.addAction("⚙ 引擎设置", self._settings); mm.addSeparator()
+        mm.addAction("❌ 退出", self._quit)
+        self.tray.setContextMenu(mm)
+        self.tray.activated.connect(lambda r: self._show() if r==QSystemTrayIcon.DoubleClick else None)
+        self.tray.show()
+
+    def _show(self):
+        self.show(); self.raise_(); self.activateWindow(); self.input_edit.setFocus()
+        # 任务栏闪烁提示
+        ctypes.windll.user32.FlashWindow(int(self.winId()), True)
+
+    def closeEvent(self, e):
+        msg = QMessageBox(self)
+        msg.setWindowTitle("qclawTranslate")
+        msg.setText("关闭窗口时：")
+        msg.setIcon(QMessageBox.Question)
+        btn_exit = msg.addButton("退出程序", QMessageBox.DestructiveRole)
+        btn_tray = msg.addButton("最小化到托盘", QMessageBox.AcceptRole)
+        btn_cancel = msg.addButton("取消", QMessageBox.RejectRole)
+        msg.setDefaultButton(btn_tray)
+        msg.exec_()
+        clicked = msg.clickedButton()
+        if clicked == btn_exit:
+            e.accept()
+            self._quit()
+        elif clicked == btn_tray:
+            e.ignore()
+            self.hide()
+            self.tray.showMessage(APP_NAME,
+                "已最小化到托盘 — 双击托盘图标恢复",
+                QSystemTrayIcon.Information, 4000)
+        else:
+            e.ignore()
+
+    def _quit(self):
+        self._hk_timer.stop()
+        self.tray.hide()
+        QApplication.quit()
+
+    # ── 划词 ──
+    def _clip_translate(self):
+        text = _get_selected_text()
+        if text:
+            self._show()
+            self.input_edit.setPlainText(text)
+            self._do_translate()
+        else:
+            self._show()
+
+    def _clip_tts(self):
+        text = _get_selected_text()
+        if text:
+            self._on_click_tts(text)
+
+    def _copy(self, text):
+        if not text: return
+        try:
+            import win32clipboard
+            win32clipboard.OpenClipboard(); win32clipboard.EmptyClipboard()
+            win32clipboard.SetClipboardText(text); win32clipboard.CloseClipboard()
+            self.status.setText("✓ 已复制"); QTimer.singleShot(2000, lambda: self.status.setText(""))
+        except:
+            self.status.setText("✗ 复制失败")
+
+    # ── 设置 ──
+    def _settings(self):
+        d = SettingsDialog(self)
+        if d.exec_() == QDialog.Accepted:
+            self.cfg = load_config()
+
+    # ── 热键 ──
+    def _setup_hotkeys(self):
+        """GetAsyncKeyState 轮询热键 Ctrl+Q / Ctrl+E（50ms）"""
+        self._q_was_down = False
+        self._e_was_down = False
+        self._hk_timer = QTimer(self, interval=50, timeout=self._poll_hotkeys)
+        self._hk_timer.start()
+
+    def _poll_hotkeys(self):
+        """每 50ms 检查一次 Ctrl+Q / Ctrl+E 是否按下"""
+        user32 = ctypes.windll.user32
+        ctrl = user32.GetAsyncKeyState(VK_CONTROL) & 0x8000
+        q_down = user32.GetAsyncKeyState(VK_Q) & 0x8000
+        e_down = user32.GetAsyncKeyState(VK_E) & 0x8000
+        if ctrl:
+            if q_down and not self._q_was_down:
+                self._hotkey_translate_action()
+            if e_down and not self._e_was_down:
+                self._hotkey_tts_action()
+        self._q_was_down = q_down
+        self._e_was_down = e_down
+
+    def _hotkey_translate_action(self):
+        """Ctrl+Q — 读取焦点窗口选中文字→翻译"""
+        global _selection_store
+        user32 = ctypes.windll.user32
+
+        # Step 1: 立刻获取前台窗口句柄（必须在任何 Qt 操作之前）
+        hwnd = user32.GetForegroundWindow()
+
+        # Step 2: 排除自身
+        if hwnd == int(self.winId()):
+            return
+
+        # Step 3: UIA 检测选中（仅确认有选中，不读文字）
+        has_sel = _find_selection(hwnd)
+
+        # Step 4: Ctrl+C 搬运文字
+        text = _copy_selection(hwnd)
+        if not text or not text.strip():
+            return
+
+        # Step 5: 换行规范化
+        text = text.replace('\r\n', '\n').replace('\r', '\n')
+
+        # Step 6: 存入内部缓冲
+        _selection_store = text
+
+        # Step 7: 填入输入框 + 翻译
+        self._show()
+        self.input_edit.setPlainText(text)
+        self._do_translate()
+
+    def _hotkey_tts_action(self):
+        """Ctrl+E — 读取焦点窗口选中文字→朗读"""
+        global _selection_store
+        user32 = ctypes.windll.user32
+
+        hwnd = user32.GetForegroundWindow()
+        if hwnd == int(self.winId()):
+            return
+
+        text = _copy_selection(hwnd)
+        if not text or not text.strip():
+            return
+
+        text = text.replace('\r\n', '\n').replace('\r', '\n')
+        _selection_store = text
+        self._on_click_tts(text)
+
+    # ── 翻译 ──
+    def _on_click_translate(self):
+        """按钮触动手动翻译 — 强制忽略 _last_text 去重"""
+        self._last_text = ""  # 清除去重，允许手动重新翻译
+        self._do_translate()
+
+    def _do_translate(self):
+        if self._translating:
+            return
+        text = self.input_edit.toPlainText().strip()
+        if not text:
+            self.output_edit.clear()
+            return
+        if text == self._last_text:
+            return
+        self._last_text = text
+        self._translating = True
+
+        self.btn_tr.setEnabled(False); self.btn_tr.setText("⏳ 翻译中…")
+        self.status.setText("⏳ 翻译中…")
+
+        src_code = self.src.currentData()
+        dst_code = self.dst.currentData()
+        cfg = dict(self.cfg)  # copy
+
+        threading.Thread(target=lambda: _bg_translate(cfg, text, src_code, dst_code), daemon=True).start()
+
+    def _on_translate_result(self, result):
+        self._translating = False
+        self.btn_tr.setEnabled(True); self.btn_tr.setText("🚀  翻译")
+        if result["success"]:
+            self.output_edit.setPlainText(result["text"])
+            self.status.setText("✓ 完成")
+        else:
+            err = str(result.get("error","未知错误"))
+            self.status.setText(f"✗ {err}")
+            self.output_edit.setPlainText(f"[翻译失败]\n{err}")
+
+    # ── TTS ──
+    def _on_click_tts(self, text):
+        if self._tts_busy:
+            return
+        text = text.strip()
+        if not text:
+            return
+        api_key = self.cfg.get("tts_api_key","").strip()
+        ws_url  = self.cfg.get("tts_ws_url","").strip()
+        if not api_key or not ws_url:
+            QMessageBox.warning(self,"提示","请先在 ⚙ 设置中配置 TTS 引擎\n（WebSocket 地址 + Key + 模型名）")
+            return
+
+        self._tts_busy = True
+        self.status.setText("🔊 合成中…")
+        src_code = self.src.currentData()
+        cfg = dict(self.cfg)
+
+        threading.Thread(target=lambda: _bg_tts(cfg, text, src_code), daemon=True).start()
+
+    def _on_tts_result(self, result):
+        self._tts_busy = False
+        ok, data = result
+        if ok:
+            self.status.setText("🔊 播放中…")
+            play_audio(data)
+            QTimer.singleShot(2000, lambda: self.status.setText("") if self.status.text().startswith("🔊") else None)
+        else:
+            err = str(data)
+            self.status.setText(f"✗ {err}")
+            QMessageBox.warning(self,"TTS 失败", err)
+
+    # ── 交换 ──
+    def _swap(self):
+        si = self.src.currentIndex(); di = self.dst.currentIndex()
+        if si == di:
+            return
+        # 如果源是 auto，不让 swap 后目标变成 auto
+        src_code = self.src.currentData()
+        dst_code = self.dst.currentData()
+        if src_code == "auto":
+            return
+        self.src.setCurrentIndex(di); self.dst.setCurrentIndex(si)
+        self._last_text = ""  # 允许重新翻译
+        # 交换文本框内容
+        o = self.output_edit.toPlainText(); i = self.input_edit.toPlainText()
+        if o:
+            self.input_edit.setPlainText(o); self.output_edit.setPlainText(i)
+            self._do_translate()  # 交换后立即翻译
+
+
+# ━━━━━━━━━━━━━━━━━━━━ 开机自启 ━━━━━━━━━━━━━━━━━━━━
+_STARTUP_DIR = os.path.join(os.environ.get("APPDATA",""),
+                            r"Microsoft\Windows\Start Menu\Programs\Startup")
+
+def _toggle_startup(on):
+    p = os.path.join(_STARTUP_DIR, "qclawTranslate.bat")
+    if on:
+        try:
+            os.makedirs(os.path.dirname(p), exist_ok=True)
+            with open(p,"w",encoding="utf-8") as f:
+                f.write(f'@echo off\nchcp 65001 >nul\ncd /d "{BASE_DIR}"\n'
+                        f'start "" /B "C:\\Users\\Administrator\\AppData\\Local\\Python\\bin\\pythonw.exe" '
+                        f'"{os.path.join(BASE_DIR,"main.py")}"\n')
+        except: pass
+    else:
+        try: os.remove(p)
+        except: pass
+
+
+# ━━━━━━━━━━━━━━━━━━━━ 入口 ━━━━━━━━━━━━━━━━━━━━
+def main():
+    # 单实例锁 — Windows 标准互斥锁，不杀进程不调 tasklist
+    kernel32 = ctypes.windll.kernel32
+    user32   = ctypes.windll.user32
+    ERROR_ALREADY_EXISTS = 183
+    mutex_name = f"Global\\{APP_NAME}_SingleInstance"
+    kernel32.CreateMutexW(None, False, mutex_name)
+    if kernel32.GetLastError() == ERROR_ALREADY_EXISTS:
+        # 已有实例 → 激活已有窗口 + 闪任务栏/托盘
+        existing = user32.FindWindowW(None, "qclawTranslate")
+        if existing:
+            user32.ShowWindow(existing, 9)   # SW_RESTORE
+            user32.ShowWindow(existing, 5)   # SW_SHOW
+            user32.SetForegroundWindow(existing)
+            user32.FlashWindow(existing, True)
+        sys.exit(0)
+
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    app = QApplication(sys.argv)
+    app.setApplicationName(APP_NAME)
+    app.setFont(QFont("Microsoft YaHei UI", 10))
+    win = MainWindow()
+    win.show()
+    if load_config().get("start_on_boot", False):
+        _toggle_startup(True)
+    sys.exit(app.exec_())
+
+if __name__ == "__main__":
+    main()

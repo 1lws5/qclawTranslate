@@ -1,0 +1,357 @@
+[23:56:57] === 诊断开始 ===
+[23:56:57] QApplication created
+[23:56:57] UIA OK: <POINTER(IUIAutomation2) ptr=0x22c51865320 at 22c517f93d0>
+[23:56:57] Toolbar created: tb.isVisible()=False
+[23:56:57]   Toolbar shown at (400,300)
+[23:56:57] Toolbar visible after show: tb.isVisible()=True
+[23:56:57]   请确认: 屏幕 (400,300) 处是否出现绿色方块？
+[23:56:57] Poller timer started (500ms)
+[23:56:57] Signal connected
+[23:56:57] 
+=== 请在浏览器/记事本选中文字，观察日志 ===
+[23:56:57] === 按 Ctrl+C 退出 ===
+
+[23:56:57]   [poll #1] EXCEPTION: NULL COM pointer access
+[23:56:58]   [poll #2] EXCEPTION: NULL COM pointer access
+[23:56:58]   [poll #3] EXCEPTION: NULL COM pointer access
+[23:56:59]   [poll #4] checking...
+[23:56:59]   [poll #4] EXCEPTION: NULL COM pointer access
+[23:56:59]   [poll #5] EXCEPTION: NULL COM pointer access
+[23:57:01]   [poll #6] EXCEPTION: NULL COM pointer access
+[23:57:01]   [poll #7] EXCEPTION: NULL COM pointer access
+[23:57:02]   [poll #8] checking...
+[23:57:02]   [poll #8] EXCEPTION: NULL COM pointer access
+[23:57:02]   [poll #9] EXCEPTION: NULL COM pointer access
+[23:57:03]   [poll #10] EXCEPTION: NULL COM pointer access
+[23:57:03]   [poll #11] EXCEPTION: NULL COM pointer access
+[23:57:04]   [poll #12] checking...
+[23:57:04]   [poll #12] EXCEPTION: NULL COM pointer access
+[23:57:04]   [poll #13] EXCEPTION: NULL COM pointer access
+[23:57:05]   [poll #14] EXCEPTION: NULL COM pointer access
+[23:57:05]   [poll #15] EXCEPTION: NULL COM pointer access
+[23:57:06]   [poll #16] checking...
+[23:57:06]   [poll #16] EXCEPTION: NULL COM pointer access
+[23:57:06]   [poll #17] EXCEPTION: NULL COM pointer access
+[23:57:07]   [poll #18] EXCEPTION: NULL COM pointer access
+[23:57:07]   [poll #19] EXCEPTION: NULL COM pointer access
+[23:57:08]   [poll #20] checking...
+[23:57:08]   [poll #20] EXCEPTION: NULL COM pointer access
+[23:57:08]   [poll #21] EXCEPTION: NULL COM pointer access
+[23:57:09]   [poll #22] EXCEPTION: NULL COM pointer access
+[23:57:09]   [poll #23] EXCEPTION: NULL COM pointer access
+[23:57:10]   [poll #24] checking...
+[23:57:10]   [poll #24] EXCEPTION: NULL COM pointer access
+[23:57:10]   [poll #25] EXCEPTION: NULL COM pointer access
+[23:57:11]   [poll #26] EXCEPTION: NULL COM pointer access
+[23:57:11]   [poll #27] UIA GOT: "日志版本"
+[23:57:11]   >>> EMITTING: "日志版本"
+[23:57:11]   *** on_selection CALLED: "日志版本"
+[23:57:11]   Showing toolbar at (500, 300)
+[23:57:11]   Toolbar shown at (500,300)
+[23:57:12]   [poll #28] checking...
+[23:57:12]   [poll #28] UIA GOT: "日志版本"
+[23:57:12]   [poll #29] UIA GOT: "日志版本"
+[23:57:13]   [poll #30] UIA GOT: "日志版本"
+[23:57:13]   [poll #31] UIA GOT: "日志版本"
+[23:57:14]   [poll #32] checking...
+[23:57:14]   [poll #32] UIA GOT: "日志版本"
+[23:57:14]   [poll #33] UIA GOT: "日志版本"
+[23:57:15]   [poll #34] UIA GOT: "日志版本"
+[23:57:15]   [poll #35] UIA GOT: "日志版本"
+[23:57:16]   [poll #36] checking...
+[23:57:16]   [poll #36] UIA GOT: "日志版本"
+[23:57:16]   [poll #37] UIA GOT: "日志版本"
+[23:57:17]   [poll #38] UIA GOT: "日志版本"
+[23:57:17]   [poll #39] UIA GOT: "日志版本"
+[23:57:18]   [poll #40] checking...
+[23:57:18]   [poll #40] UIA GOT: "硬核"
+[23:57:18]   >>> EMITTING: "硬核"
+[23:57:18]   *** on_selection CALLED: "硬核"
+[23:57:18]   Showing toolbar at (500, 300)
+[23:57:18]   Toolbar shown at (500,300)
+[23:57:18]   [poll #41] UIA GOT: "硬核诊"
+[23:57:18]   >>> EMITTING: "硬核诊"
+[23:57:18]   *** on_selection CALLED: "硬核诊"
+[23:57:18]   Showing toolbar at (500, 300)
+[23:57:18]   Toolbar shown at (500,300)
+[23:57:19]   [poll #42] UIA selection empty → trying Ctrl+C
+[23:57:19]   [poll #42] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:19]   >>> EMITTING: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:19]   *** on_selection CALLED: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:19]   Showing toolbar at (500, 300)
+[23:57:19]   Toolbar shown at (500,300)
+[23:57:19]   [poll #43] UIA selection empty → trying Ctrl+C
+[23:57:20]   [poll #43] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:20]   [poll #44] checking...
+[23:57:20]   [poll #44] UIA selection empty → trying Ctrl+C
+[23:57:20]   [poll #44] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:20]   [poll #45] UIA selection empty → trying Ctrl+C
+[23:57:21]   [poll #45] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:21]   [poll #46] UIA selection empty → trying Ctrl+C
+[23:57:21]   [poll #46] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:21]   [poll #47] UIA selection empty → trying Ctrl+C
+[23:57:22]   [poll #47] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:22]   [poll #48] checking...
+[23:57:22]   [poll #48] UIA selection empty → trying Ctrl+C
+[23:57:22]   [poll #48] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:22]   [poll #49] UIA selection empty → trying Ctrl+C
+[23:57:23]   [poll #49] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:23]   [poll #50] UIA selection empty → trying Ctrl+C
+[23:57:23]   [poll #50] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:23]   [poll #51] UIA selection empty → trying Ctrl+C
+[23:57:24]   [poll #51] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:24]   [poll #52] checking...
+[23:57:24]   [poll #52] UIA selection empty → trying Ctrl+C
+[23:57:24]   [poll #52] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:24]   [poll #53] UIA selection empty → trying Ctrl+C
+[23:57:25]   [poll #53] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:25]   [poll #54] UIA selection empty → trying Ctrl+C
+[23:57:25]   [poll #54] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:25]   [poll #55] UIA selection empty → trying Ctrl+C
+[23:57:26]   [poll #55] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:26]   [poll #56] checking...
+[23:57:26]   [poll #56] UIA selection empty → trying Ctrl+C
+[23:57:26]   [poll #56] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:26]   [poll #57] UIA selection empty → trying Ctrl+C
+[23:57:27]   [poll #57] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:27]   [poll #58] UIA selection empty → trying Ctrl+C
+[23:57:27]   [poll #58] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:27]   [poll #59] UIA selection empty → trying Ctrl+C
+[23:57:28]   [poll #59] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:28]   [poll #60] checking...
+[23:57:28]   [poll #60] UIA selection empty → trying Ctrl+C
+[23:57:28]   [poll #60] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:28]   [poll #61] UIA selection empty → trying Ctrl+C
+[23:57:29]   [poll #61] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:29]   [poll #62] UIA selection empty → trying Ctrl+C
+[23:57:29]   [poll #62] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:29]   [poll #63] UIA selection empty → trying Ctrl+C
+[23:57:30]   [poll #63] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:30]   [poll #64] checking...
+[23:57:30]   [poll #64] UIA selection empty → trying Ctrl+C
+[23:57:30]   [poll #64] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:30]   [poll #65] UIA selection empty → trying Ctrl+C
+[23:57:31]   [poll #65] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:31]   [poll #66] UIA selection empty → trying Ctrl+C
+[23:57:31]   [poll #66] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:31]   [poll #67] UIA selection empty → trying Ctrl+C
+[23:57:32]   [poll #67] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:32]   [poll #68] checking...
+[23:57:32]   [poll #68] UIA selection empty → trying Ctrl+C
+[23:57:32]   [poll #68] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:32]   [poll #69] UIA selection empty → trying Ctrl+C
+[23:57:33]   [poll #69] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:33]   [poll #70] UIA selection empty → trying Ctrl+C
+[23:57:33]   [poll #70] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:33]   [poll #71] UIA selection empty → trying Ctrl+C
+[23:57:34]   [poll #71] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:34]   [poll #72] checking...
+[23:57:34]   [poll #72] UIA selection empty → trying Ctrl+C
+[23:57:34]   [poll #72] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:35]   [poll #73] UIA selection empty → trying Ctrl+C
+[23:57:35]   [poll #73] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:35]   [poll #74] UIA selection empty → trying Ctrl+C
+[23:57:35]   [poll #74] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:35]   [poll #75] UIA selection empty → trying Ctrl+C
+[23:57:36]   [poll #75] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:36]   [poll #76] checking...
+[23:57:36]   [poll #76] UIA selection empty → trying Ctrl+C
+[23:57:36]   [poll #76] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:36]   [poll #77] UIA selection empty → trying Ctrl+C
+[23:57:37]   [poll #77] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:37]   [poll #78] UIA selection empty → trying Ctrl+C
+[23:57:37]   [poll #78] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:37]   [poll #79] UIA selection empty → trying Ctrl+C
+[23:57:38]   [poll #79] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:38]   [poll #80] checking...
+[23:57:38]   [poll #80] UIA selection empty → trying Ctrl+C
+[23:57:38]   [poll #80] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:38]   [poll #81] UIA selection empty → trying Ctrl+C
+[23:57:39]   [poll #81] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:39]   [poll #82] UIA selection empty → trying Ctrl+C
+[23:57:39]   [poll #82] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:39]   [poll #83] UIA selection empty → trying Ctrl+C
+[23:57:40]   [poll #83] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:40]   [poll #84] checking...
+[23:57:40]   [poll #84] UIA selection empty → trying Ctrl+C
+[23:57:40]   [poll #84] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:40]   [poll #85] UIA selection empty → trying Ctrl+C
+[23:57:41]   [poll #85] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:41]   [poll #86] UIA selection empty → trying Ctrl+C
+[23:57:41]   [poll #86] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:41]   [poll #87] UIA selection empty → trying Ctrl+C
+[23:57:42]   [poll #87] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:42]   [poll #88] checking...
+[23:57:42]   [poll #88] UIA selection empty → trying Ctrl+C
+[23:57:42]   [poll #88] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:42]   [poll #89] UIA selection empty → trying Ctrl+C
+[23:57:43]   [poll #89] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:43]   [poll #90] UIA selection empty → trying Ctrl+C
+[23:57:43]   [poll #90] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:43]   [poll #91] UIA selection empty → trying Ctrl+C
+[23:57:44]   [poll #91] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:44]   [poll #92] checking...
+[23:57:44]   [poll #92] UIA selection empty → trying Ctrl+C
+[23:57:44]   [poll #92] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:44]   [poll #93] UIA selection empty → trying Ctrl+C
+[23:57:45]   [poll #93] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:45]   [poll #94] UIA selection empty → trying Ctrl+C
+[23:57:45]   [poll #94] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:45]   [poll #95] UIA selection empty → trying Ctrl+C
+[23:57:46]   [poll #95] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:46]   [poll #96] checking...
+[23:57:46]   [poll #96] UIA selection empty → trying Ctrl+C
+[23:57:46]   [poll #96] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:46]   [poll #97] UIA selection empty → trying Ctrl+C
+[23:57:47]   [poll #97] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:47]   [poll #98] UIA selection empty → trying Ctrl+C
+[23:57:47]   [poll #98] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:47]   [poll #99] UIA selection empty → trying Ctrl+C
+[23:57:48]   [poll #99] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:48]   [poll #100] checking...
+[23:57:48]   [poll #100] UIA selection empty → trying Ctrl+C
+[23:57:48]   [poll #100] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:48]   [poll #101] UIA selection empty → trying Ctrl+C
+[23:57:49]   [poll #101] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:49]   [poll #102] UIA selection empty → trying Ctrl+C
+[23:57:49]   [poll #102] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:57:49]   [poll #103] UIA GOT: "全就绪前就开始"
+[23:57:49]   >>> EMITTING: "全就绪前就开始"
+[23:57:49]   *** on_selection CALLED: "全就绪前就开始"
+[23:57:49]   Showing toolbar at (500, 300)
+[23:57:49]   Toolbar shown at (500,300)
+[23:57:50]   [poll #104] checking...
+[23:57:50]   [poll #104] UIA GOT: "全就绪前就开始轮询 C"
+[23:57:50]   >>> EMITTING: "全就绪前就开始轮询 C"
+[23:57:50]   *** on_selection CALLED: "全就绪前就开始轮询 C"
+[23:57:50]   Showing toolbar at (500, 300)
+[23:57:50]   Toolbar shown at (500,300)
+[23:57:50]   [poll #105] UIA GOT: "全就绪前就开始轮询 C"
+[23:57:51]   [poll #106] UIA GOT: "全就绪前就开始轮询 C"
+[23:57:51]   [poll #107] UIA GOT: "全就绪前就开始轮询 C"
+[23:57:52]   [poll #108] checking...
+[23:57:52]   [poll #108] EXCEPTION: NULL COM pointer access
+[23:57:52]   [poll #109] EXCEPTION: NULL COM pointer access
+[23:57:53]   [poll #110] UIA GOT: "全就绪前就开始轮询 C"
+[23:57:54]   [poll #111] UIA GOT: "全就绪前就开始轮询 C"
+[23:57:54]   [poll #112] checking...
+[23:57:54]   [poll #112] UIA GOT: "全就绪前就开始轮询 C"
+[23:57:54]   [poll #113] UIA GOT: "全就绪前就开始轮询 C"
+[23:57:55]   [poll #114] UIA GOT: "全就绪前就开始轮询 C"
+[23:57:55]   [poll #115] UIA GOT: "全就绪前就开始轮询 C"
+[23:57:56]   [poll #116] checking...
+[23:57:56]   [poll #116] UIA GOT: "全就绪前就开始轮询 C"
+[23:57:56]   [poll #117] EXCEPTION: NULL COM pointer access
+[23:57:57]   [poll #118] EXCEPTION: NULL COM pointer access
+[23:57:57]   [poll #119] EXCEPTION: NULL COM pointer access
+[23:57:58]   [poll #120] checking...
+[23:57:58]   [poll #120] EXCEPTION: NULL COM pointer access
+[23:57:58]   [poll #121] EXCEPTION: NULL COM pointer access
+[23:57:59]   [poll #122] EXCEPTION: NULL COM pointer access
+[23:57:59]   [poll #123] EXCEPTION: NULL COM pointer access
+[23:58:00]   [poll #124] checking...
+[23:58:00]   [poll #124] EXCEPTION: NULL COM pointer access
+[23:58:00]   [poll #125] EXCEPTION: NULL COM pointer access
+[23:58:01]   [poll #126] EXCEPTION: NULL COM pointer access
+[23:58:02]   [poll #127] UIA selection empty → trying Ctrl+C
+[23:58:02]   [poll #127] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:02]   >>> EMITTING: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:02]   *** on_selection CALLED: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:02]   Showing toolbar at (500, 300)
+[23:58:02]   Toolbar shown at (500,300)
+[23:58:02]   [poll #128] checking...
+[23:58:02]   [poll #128] UIA selection empty → trying Ctrl+C
+[23:58:02]   [poll #128] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:02]   [poll #129] UIA selection empty → trying Ctrl+C
+[23:58:03]   [poll #129] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:03]   [poll #130] UIA selection empty → trying Ctrl+C
+[23:58:03]   [poll #130] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:03]   [poll #131] UIA selection empty → trying Ctrl+C
+[23:58:04]   [poll #131] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:04]   [poll #132] checking...
+[23:58:04]   [poll #132] UIA selection empty → trying Ctrl+C
+[23:58:04]   [poll #132] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:04]   [poll #133] EXCEPTION: NULL COM pointer access
+[23:58:05]   [poll #134] UIA selection empty → trying Ctrl+C
+[23:58:05]   [poll #134] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:05]   [poll #135] UIA selection empty → trying Ctrl+C
+[23:58:06]   [poll #135] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:06]   [poll #136] checking...
+[23:58:06]   [poll #136] UIA selection empty → trying Ctrl+C
+[23:58:06]   [poll #136] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:06]   [poll #137] UIA selection empty → trying Ctrl+C
+[23:58:07]   [poll #137] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:07]   [poll #138] UIA GOT: "t 事件循环"
+[23:58:07]   >>> EMITTING: "t 事件循环"
+[23:58:07]   *** on_selection CALLED: "t 事件循环"
+[23:58:07]   Showing toolbar at (500, 300)
+[23:58:07]   Toolbar shown at (500,300)
+[23:58:07]   [poll #139] UIA GOT: "t 事件循环"
+[23:58:08]   [poll #140] checking...
+[23:58:08]   [poll #140] UIA GOT: "t 事件循环"
+[23:58:09]   [poll #141] UIA GOT: "t 事件循环"
+[23:58:09]   [poll #142] UIA GOT: "t 事件循环"
+[23:58:09]   [poll #143] UIA GOT: "t 事件循环"
+[23:58:10]   [poll #144] checking...
+[23:58:10]   [poll #144] UIA GOT: "t 事件循环"
+[23:58:10]   [poll #145] UIA GOT: "t 事件循环"
+[23:58:11]   [poll #146] UIA GOT: "t 事件循环"
+[23:58:12]   [poll #147] UIA GOT: "t 事件循环"
+[23:58:12]   [poll #148] checking...
+[23:58:12]   [poll #148] UIA selection empty → trying Ctrl+C
+[23:58:12]   [poll #148] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:12]   >>> EMITTING: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:12]   *** on_selection CALLED: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:12]   Showing toolbar at (500, 300)
+[23:58:12]   Toolbar shown at (500,300)
+[23:58:13]   [poll #149] UIA selection empty → trying Ctrl+C
+[23:58:13]   [poll #149] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:13]   [poll #150] UIA selection empty → trying Ctrl+C
+[23:58:13]   [poll #150] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:13]   [poll #151] UIA selection empty → trying Ctrl+C
+[23:58:14]   [poll #151] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:14]   [poll #152] checking...
+[23:58:14]   [poll #152] UIA selection empty → trying Ctrl+C
+[23:58:14]   [poll #152] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:15]   [poll #153] UIA selection empty → trying Ctrl+C
+[23:58:15]   [poll #153] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:15]   [poll #154] UIA selection empty → trying Ctrl+C
+[23:58:15]   [poll #154] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:15]   [poll #155] UIA selection empty → trying Ctrl+C
+[23:58:16]   [poll #155] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:16]   [poll #156] checking...
+[23:58:16]   [poll #156] UIA selection empty → trying Ctrl+C
+[23:58:16]   [poll #156] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:16]   [poll #157] UIA selection empty → trying Ctrl+C
+[23:58:17]   [poll #157] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:17]   [poll #158] UIA selection empty → trying Ctrl+C
+[23:58:17]   [poll #158] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:17]   [poll #159] UIA selection empty → trying Ctrl+C
+[23:58:18]   [poll #159] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:18]   [poll #160] checking...
+[23:58:18]   [poll #160] UIA selection empty → trying Ctrl+C
+[23:58:18]   [poll #160] Ctrl+C GOT: "录音逻＀ÿ＀￿Ġc￀￿㓤쩉痀耀*─}"
+[23:58:18]   [poll #161] EXCEPTION: NULL COM pointer access
+[23:58:19]   [poll #162] EXCEPTION: NULL COM pointer access
+[23:58:19]   [poll #163] EXCEPTION: NULL COM pointer access
+[23:58:20]   [poll #164] checking...
+[23:58:20]   [poll #164] EXCEPTION: NULL COM pointer access
+[23:58:20]   [poll #165] EXCEPTION: NULL COM pointer access
+[23:58:21]   [poll #166] EXCEPTION: NULL COM pointer access
+[23:58:21]   [poll #167] EXCEPTION: NULL COM pointer access
+[23:58:22]   [poll #168] checking...
+[23:58:22]   [poll #168] EXCEPTION: NULL COM pointer access
+[23:58:22]   [poll #169] EXCEPTION: NULL COM pointer access
+[23:58:23]   [poll #170] EXCEPTION: NULL COM pointer access
+[23:58:23]   [poll #171] EXCEPTION: NULL COM pointer access
+[23:58:24]   [poll #172] checking...
+[23:58:24]   [poll #172] EXCEPTION: NULL COM pointer access
+[23:58:24]   [poll #173] EXCEPTION: NULL COM pointer access
+[23:58:26]   [poll #176] checking...
+[23:58:26]   [poll #176] No selection on: 产品定价 - QClaw | QClaw
+[23:58:28]   [poll #180] checking...
+[23:58:28]   [poll #180] No selection on: 产品定价 - QClaw | QClaw
+[23:58:30]   [poll #184] checking...
+[23:58:30]   [poll #184] No selection on: 产品定价 - QClaw | QClaw
+[23:58:32]   [poll #188] checking...
+[23:58:32]   [poll #188] No selection on: 产品定价 - QClaw | QClaw
