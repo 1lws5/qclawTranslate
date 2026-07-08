@@ -341,65 +341,63 @@ def _get_uia():
 
 
 def _get_selected_text():
-    """
-    通过 Windows UI Automation 直接读取焦点窗口的选中文字。
-    零剪贴板、零按键模拟、零焦点争夺。
-    返回选中文本字符串；无选中或失败时返回 None。
-    """
-    text, _ = _get_selected_with_position()
-    return text
+    """通过 UIA 偏移截取直接读取焦点窗口选中文字。
+    不碰 SendInput、不碰剪贴板、不抢焦点。"""
+    hwnd = ctypes.windll.user32.GetForegroundWindow()
+    return _read_selection_uia(hwnd) or None
 
 
 def _get_selected_with_position():
-    """
-    双路读选中文字 + 坐标：UIA → Ctrl+C 回退。
-    Chrome 的 TextPattern 经常返回空串，UIA 能告诉"有选中"但读不出内容，
-    此时走 Ctrl+C 回退。
-    返回 (text_or_None, (screen_x, screen_y)_or_None)
-    """
-    pos = None
+    """通过 UIA 偏移截取读取焦点窗口选中文字 + 选中区域坐标。
+    返回 (text_or_None, (screen_x, screen_y)_or_None)。
+    失败返回 (None, None)。"""
     try:
         uia = _get_uia()
         element = uia.GetFocusedElement()
         if element is None:
             return None, None
 
-        tp = element.GetCurrentPattern(10014)  # UIA_TextPatternId
+        tp = element.GetCurrentPattern(10014)
         if tp is None:
             return None, None
 
-        text_pattern = tp.QueryInterface(_IUIA_TP)
-        selection = text_pattern.GetSelection()
-        if selection is None or selection.Length == 0:
+        tpi = tp.QueryInterface(_IUIA_TP)
+        sel = tpi.GetSelection()
+        if sel is None or sel.Length == 0:
             return None, None
 
-        # 读文字 + 取最后选段坐标
-        parts = []
+        doc = tpi.DocumentRange
+        full = doc.GetText(-1)
+        if not full:
+            return None, None
+
+        # 偏移截取
+        TPRE_Start, TPRE_End = 0, 1
+        results = []
         last_rect = None
-        for i in range(selection.Length):
-            tr = selection.GetElement(i)
-            text = tr.GetText(-1)
-            if text:
-                parts.append(text)
+        for i in range(sel.Length):
+            sr = sel.GetElement(i)
+            try:
+                c_start = doc.Clone()
+                c_start.MoveEndpointByRange(TPRE_End, sr, TPRE_Start)
+                lo = len(c_start.GetText(-1))
+                c_end = doc.Clone()
+                c_end.MoveEndpointByRange(TPRE_End, sr, TPRE_End)
+                hi = len(c_end.GetText(-1))
+                if 0 <= lo < hi <= len(full):
+                    results.append(full[lo:hi])
+            except Exception:
+                continue
             # 坐标
             try:
-                rects = tr.GetBoundingRectangles()
+                rects = sr.GetBoundingRectangles()
                 if rects and rects.Length > 0:
                     last_rect = rects.GetElement(rects.Length - 1)
-            except:
+            except Exception:
                 pass
 
-        result = ''.join(parts).strip()
+        result = ''.join(results).strip()
 
-        # Chrome 通病：有选中但文字为空 → Ctrl+C 回退
-        if not result:
-            fallback_text = _get_selected_via_clipboard()
-            if fallback_text:
-                result = fallback_text
-            else:
-                return None, None
-
-        # 坐标：用选中区域中点 x + 顶部 y（放工具栏上方）
         if last_rect is not None:
             mid_x = int((last_rect.left + last_rect.right) / 2)
             pos = (mid_x, int(last_rect.top))
@@ -413,108 +411,10 @@ def _get_selected_with_position():
         return result, pos
 
     except Exception:
-        # UIA 完全失败 → 全走 Ctrl+C
-        return _get_selected_via_clipboard(), None
+        return None, None
 
 
-_CB_LAST = b""
-
-# ━━ 内部选中文字存储 ━━
-_selection_store = ""
-
-def _get_selected_via_clipboard():
-    """
-    Ctrl+C 回退：复制到剪贴板再读。
-    使用 SendInput 模拟 Ctrl+C，不依赖 UIA。
-    """
-    global _CB_LAST
-    try:
-        import win32clipboard
-        user32 = ctypes.windll.user32
-
-        # 保存当前剪贴板内容
-        old_data = b""
-        old_open = False
-        try:
-            win32clipboard.OpenClipboard()
-            old_open = True
-            old_data_raw = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
-            if old_data_raw:
-                old_data = old_data_raw.encode('utf-16-le') if isinstance(old_data_raw, str) else old_data_raw
-        except:
-            pass
-        if old_open:
-            try: win32clipboard.CloseClipboard()
-            except: pass
-
-        # 发送 Ctrl+C（SendInput）
-        _send_ctrl_c()
-        time.sleep(0.15)  # 等剪贴板更新
-
-        # 读剪贴板
-        text = None
-        try:
-            win32clipboard.OpenClipboard()
-            cb_text = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
-            if cb_text and cb_text.strip():
-                text = cb_text.strip()
-        except:
-            pass
-        # 恢复旧内容
-        if old_data:
-            try:
-                win32clipboard.EmptyClipboard()
-                win32clipboard.SetClipboardData(win32clipboard.CF_UNICODETEXT, old_data)
-            except:
-                pass
-        try: win32clipboard.CloseClipboard()
-        except: pass
-
-        return text
-    except Exception:
-        return None
-
-
-def _send_ctrl_c():
-    """通过 SendInput 发送 Ctrl+C"""
-    from ctypes import byref, sizeof, Structure, Union, c_uint, c_ushort, c_long, c_ulong
-    import time as _time
-
-    class KEYBDINPUT(Structure):
-        _fields_ = [("wVk", c_ushort), ("wScan", c_ushort),
-                    ("dwFlags", c_ulong), ("time", c_ulong), ("dwExtraInfo", ctypes.POINTER(c_ulong))]
-
-    class INPUT_UNION(Union):
-        _fields_ = [("ki", KEYBDINPUT)]
-
-    class INPUT(Structure):
-        _fields_ = [("type", c_ulong), ("u", INPUT_UNION)]
-
-    KEYEVENTF_KEYUP = 0x0002
-    VK_CONTROL = 0x11
-    VK_C = 0x43
-
-    inputs = (INPUT * 4)()
-    # Ctrl down
-    inputs[0].type = 1
-    inputs[0].u.ki.wVk = VK_CONTROL
-    # C down
-    inputs[1].type = 1
-    inputs[1].u.ki.wVk = VK_C
-    # C up
-    inputs[2].type = 1
-    inputs[2].u.ki.wVk = VK_C
-    inputs[2].u.ki.dwFlags = KEYEVENTF_KEYUP
-    # Ctrl up
-    inputs[3].type = 1
-    inputs[3].u.ki.wVk = VK_CONTROL
-    inputs[3].u.ki.dwFlags = KEYEVENTF_KEYUP
-
-    ctypes.windll.user32.SendInput(4, byref(inputs), sizeof(INPUT))
-    _time.sleep(0.05)
-
-
-# ━━ 剪贴板安全读写 ━━
+# ━━ 剪贴板安全读写（托盘菜单 _clip_from_clipboard 仍用 Ctrl+C 路径）━━━
 def _get_clipboard_text():
     """安全读取剪贴板文本，失败返回 None"""
     try:
@@ -544,114 +444,80 @@ def _set_clipboard_text(text):
         pass
 
 
-def _wait_clipboard_change(old_content, timeout_ms=2000):
-    """轮询等待剪贴板内容变化，返回新内容；超时返回 None"""
-    import time as _time
-    deadline = _time.perf_counter() + timeout_ms / 1000.0
-    while _time.perf_counter() < deadline:
-        current = _get_clipboard_text()
-        if current is not None and current != old_content:
-            return current
-        _time.sleep(0.02)
-    return None
-
-
-# ━━ UIA 选中检测 ━━
-def _bring_to_front(hwnd):
-    """将指定窗口设为前台，AttachThreadInput 确保前台切换权限"""
-    user32 = ctypes.windll.user32
-    cur_hwnd = user32.GetForegroundWindow()
-    if cur_hwnd == hwnd:
-        return
-    cur_tid = user32.GetWindowThreadProcessId(cur_hwnd, None)
-    target_tid = user32.GetWindowThreadProcessId(hwnd, None)
-    if cur_tid != target_tid:
-        user32.AttachThreadInput(target_tid, cur_tid, True)
-    try:
-        user32.SetForegroundWindow(hwnd)
-        if user32.IsIconic(hwnd):
-            user32.ShowWindow(hwnd, 9)  # SW_RESTORE
-    finally:
-        if cur_tid != target_tid:
-            user32.AttachThreadInput(target_tid, cur_tid, False)
-
-
-def _search_selection_recursive(uia, element, depth=0, max_depth=5, max_children=50):
-    """递归遍历 UIA 子元素树，检测 TextPattern 选中状态"""
+# ━━ UIA 递归查找 & 偏移截取 ━━
+def _find_text_pattern_recursive(uia, element, depth=0, max_depth=5, max_children=50):
+    """递归遍历 UIA 子元素树，找到有选中的 TextPattern 并返回。
+    返回 IUIAutomationTextPattern 或 None。"""
     if depth > max_depth:
-        return False
+        return None
     try:
-        tp = element.GetCurrentPattern(10014)
+        tp = element.GetCurrentPattern(10014)  # UIA_TextPatternId
         if tp:
             try:
                 tpi = tp.QueryInterface(_IUIA_TP)
                 sel = tpi.GetSelection()
                 if sel and sel.Length > 0:
-                    return True
+                    return tpi
             except Exception:
                 pass
     except Exception:
         pass
-
-    # 递归遍历子元素
     try:
         uia_children = element.FindAll(2, uia.CreateTrueCondition())
         if uia_children is None or uia_children.Length == 0:
-            return False
+            return None
         count = min(uia_children.Length, max_children)
         for i in range(count):
             child = uia_children.GetElement(i)
-            if _search_selection_recursive(uia, child, depth + 1, max_depth, max_children):
-                return True
+            r = _find_text_pattern_recursive(uia, child, depth + 1, max_depth, max_children)
+            if r:
+                return r
     except Exception:
         pass
-    return False
+    return None
 
 
-def _find_selection(hwnd):
-    """UIA 递归检测指定窗口中是否有文本被选中，返回 True/False"""
+def _read_selection_uia(hwnd):
+    """通过 UIA 偏移截取读取指定窗口中的选中文字。
+    不碰 SendInput、不碰剪贴板、不抢焦点。
+    返回选中文字（字符串）；失败或无选中返回空字符串。"""
     try:
         uia = _get_uia()
         element = uia.ElementFromHandle(hwnd)
         if element is None:
-            return False
-        return _search_selection_recursive(uia, element)
-    except Exception:
-        return False
+            return ""
 
+        tpi = _find_text_pattern_recursive(uia, element)
+        if tpi is None:
+            return ""
 
-# ━━ Ctrl+C 搬运文字 ━━
-def _copy_selection(hwnd):
-    """通过 Ctrl+C 从目标窗口搬运选中文字，所有分支恢复剪贴板"""
-    import win32clipboard
+        sel = tpi.GetSelection()
+        doc = tpi.DocumentRange
+        full = doc.GetText(-1)
+        if not full:
+            return ""
 
-    # 备份剪贴板
-    old_clipboard = _get_clipboard_text()
-
-    # 确保前台窗口是目标
-    _bring_to_front(hwnd)
-
-    # 发送 Ctrl+C
-    _send_ctrl_c()
-
-    # 轮询等待剪贴板变化
-    new_text = _wait_clipboard_change(old_clipboard, timeout_ms=2000)
-
-    # 恢复剪贴板（所有分支必须恢复）
-    if old_clipboard is not None:
-        _set_clipboard_text(old_clipboard)
-    else:
-        # 剪贴板原本无文本，清空
-        try:
-            win32clipboard.OpenClipboard()
+        TPRE_Start, TPRE_End = 0, 1
+        results = []
+        for i in range(sel.Length):
+            sr = sel.GetElement(i)
             try:
-                win32clipboard.EmptyClipboard()
-            finally:
-                win32clipboard.CloseClipboard()
-        except Exception:
-            pass
+                c_start = doc.Clone()
+                c_start.MoveEndpointByRange(TPRE_End, sr, TPRE_Start)
+                lo = len(c_start.GetText(-1))
 
-    return new_text if new_text else ""
+                c_end = doc.Clone()
+                c_end.MoveEndpointByRange(TPRE_End, sr, TPRE_End)
+                hi = len(c_end.GetText(-1))
+
+                if 0 <= lo < hi <= len(full):
+                    results.append(full[lo:hi])
+            except Exception:
+                continue
+
+        return ''.join(results)
+    except Exception:
+        return ""
 
 
 # --- GetAsyncKeyState 热键轮询（替代 RegisterHotKey） ---
@@ -1004,51 +870,33 @@ class MainWindow(QMainWindow):
         self._e_was_down = e_down
 
     def _hotkey_translate_action(self):
-        """Ctrl+Q — 读取焦点窗口选中文字→翻译"""
-        global _selection_store
+        """Ctrl+Q — UIA 偏移截取读取焦点窗口选中文字→翻译"""
         user32 = ctypes.windll.user32
-
-        # Step 1: 立刻获取前台窗口句柄（必须在任何 Qt 操作之前）
         hwnd = user32.GetForegroundWindow()
-
-        # Step 2: 排除自身
         if hwnd == int(self.winId()):
             return
 
-        # Step 3: UIA 检测选中（仅确认有选中，不读文字）
-        has_sel = _find_selection(hwnd)
-
-        # Step 4: Ctrl+C 搬运文字
-        text = _copy_selection(hwnd)
+        text = _read_selection_uia(hwnd)
         if not text or not text.strip():
             return
 
-        # Step 5: 换行规范化
         text = text.replace('\r\n', '\n').replace('\r', '\n')
-
-        # Step 6: 存入内部缓冲
-        _selection_store = text
-
-        # Step 7: 填入输入框 + 翻译
         self._show()
         self.input_edit.setPlainText(text)
         self._do_translate()
 
     def _hotkey_tts_action(self):
-        """Ctrl+E — 读取焦点窗口选中文字→朗读"""
-        global _selection_store
+        """Ctrl+E — UIA 偏移截取读取焦点窗口选中文字→朗读"""
         user32 = ctypes.windll.user32
-
         hwnd = user32.GetForegroundWindow()
         if hwnd == int(self.winId()):
             return
 
-        text = _copy_selection(hwnd)
+        text = _read_selection_uia(hwnd)
         if not text or not text.strip():
             return
 
         text = text.replace('\r\n', '\n').replace('\r', '\n')
-        _selection_store = text
         self._on_click_tts(text)
 
     # ── 翻译 ──
