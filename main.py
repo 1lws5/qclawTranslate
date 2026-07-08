@@ -520,6 +520,81 @@ def _read_selection_uia(hwnd):
         return ""
 
 
+def _read_selection(hwnd):
+    """读取选中文字：UIA 偏移截取优先，失败回退 Ctrl+C。
+    Notepad → UIA 偏移截取；Edge/Anki/Qt → Ctrl+C 回退。"""
+    text = _read_selection_uia(hwnd)
+    if text:
+        return text
+    return _copy_selection_fallback(hwnd)
+
+
+def _bring_to_front_hwnd(hwnd):
+    """尝试把目标窗口切换到前台，失败不抛异常"""
+    try:
+        user32 = ctypes.windll.user32
+        cur = user32.GetForegroundWindow()
+        if cur == hwnd:
+            return
+        ctid = user32.GetWindowThreadProcessId(cur, None)
+        ttid = user32.GetWindowThreadProcessId(hwnd, None)
+        if ctid != ttid:
+            user32.AttachThreadInput(ttid, ctid, True)
+        user32.SetForegroundWindow(hwnd)
+        user32.BringWindowToTop(hwnd)
+        if ctid != ttid:
+            user32.AttachThreadInput(ttid, ctid, False)
+        time.sleep(0.05)
+    except Exception:
+        pass
+
+
+def _send_ctrl_c_sendinput():
+    """SendInput 模拟 Ctrl+C，含 key-down / key-up 配对"""
+    try:
+        from ctypes import byref, sizeof, Structure, Union, c_uint, c_ushort, c_ulong
+        class KI(Structure):
+            _fields_ = [("wVk", c_ushort), ("wScan", c_ushort), ("dwFlags", c_ulong),
+                        ("time", c_ulong), ("dwExtraInfo", ctypes.POINTER(c_ulong))]
+        class IU(Union): _fields_ = [("ki", KI)]
+        class INP(Structure): _fields_ = [("type", c_ulong), ("u", IU)]
+        KEYEVENTF_KEYUP = 0x0002
+        def _send(vk, up=False):
+            inp = INP()
+            inp.type = 1
+            inp.u.ki.wVk = vk
+            if up:
+                inp.u.ki.dwFlags = KEYEVENTF_KEYUP
+            ctypes.windll.user32.SendInput(1, byref(inp), sizeof(INP))
+        _send(0x11); time.sleep(0.01)
+        _send(0x43); time.sleep(0.01)
+        _send(0x43, True); time.sleep(0.01)
+        _send(0x11, True); time.sleep(0.03)
+    except Exception:
+        pass
+
+
+def _copy_selection_fallback(hwnd):
+    """SendInput Ctrl+C 搬运选中文字。仅当 UIA 不可用时使用。
+    所有分支恢复剪贴板。返回文字或空串。"""
+    if hwnd is None or hwnd == 0:
+        return ""
+    old_clip = _get_clipboard_text()
+    _bring_to_front_hwnd(hwnd)
+    _send_ctrl_c_sendinput()
+    deadline = time.perf_counter() + 1.2
+    new_text = None
+    while time.perf_counter() < deadline:
+        current = _get_clipboard_text()
+        if current is not None and current != old_clip:
+            new_text = current
+            break
+        time.sleep(0.03)
+    if old_clip is not None:
+        _set_clipboard_text(old_clip)
+    return new_text if new_text else ""
+
+
 # --- GetAsyncKeyState 热键轮询（替代 RegisterHotKey） ---
 VK_CONTROL = 0x11
 VK_Q = 0x51
@@ -870,13 +945,13 @@ class MainWindow(QMainWindow):
         self._e_was_down = e_down
 
     def _hotkey_translate_action(self):
-        """Ctrl+Q — UIA 偏移截取读取焦点窗口选中文字→翻译"""
+        """Ctrl+Q — 读取焦点窗口选中文字→翻译（UIA优先，Ctrl+C回退）"""
         user32 = ctypes.windll.user32
         hwnd = user32.GetForegroundWindow()
         if hwnd == int(self.winId()):
             return
 
-        text = _read_selection_uia(hwnd)
+        text = _read_selection(hwnd)
         if not text or not text.strip():
             return
 
@@ -886,13 +961,13 @@ class MainWindow(QMainWindow):
         self._do_translate()
 
     def _hotkey_tts_action(self):
-        """Ctrl+E — UIA 偏移截取读取焦点窗口选中文字→朗读"""
+        """Ctrl+E — 读取焦点窗口选中文字→朗读（UIA优先，Ctrl+C回退）"""
         user32 = ctypes.windll.user32
         hwnd = user32.GetForegroundWindow()
         if hwnd == int(self.winId()):
             return
 
-        text = _read_selection_uia(hwnd)
+        text = _read_selection(hwnd)
         if not text or not text.strip():
             return
 
