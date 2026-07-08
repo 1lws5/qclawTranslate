@@ -1,35 +1,14 @@
 
 ============================================================
-[ERROR] KeyboardInterrupt: 
+[ERROR] ArgumentError: argument 3: TypeError: Don't know how to convert parameter 3
 Traceback (most recent call last):
-  File "C:\Users\Administrator\Desktop\qclawTranslate\main.py", line 623, in _poll
-    text, pos = _get_selected_with_position()
-                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Administrator\Desktop\qclawTranslate\main.py", line 394, in _get_selected_with_position
-    fallback_text = _get_selected_via_clipboard()
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Administrator\Desktop\qclawTranslate\main.py", line 445, in _get_selected_via_clipboard
-    time.sleep(0.15)  # 等剪贴板更新
-    ^^^^^^^^^^^^^^^^
-KeyboardInterrupt
+  File "D:\qclawTranslate\diag_copysel.py", line 29, in <module>
+    ctypes.windll.user32.EnumChildWindows(hwnd, ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_size_t, ctypes.py_object)(enum_child), children)
+ctypes.ArgumentError: argument 3: TypeError: Don't know how to convert parameter 3
 
 ============================================================
-[ERROR] UnicodeEncodeError: 'gbk' codec can't encode character '\u2717' in position 2: illegal multibyte sequence
+[ERROR] ArgumentError: argument 3: TypeError: Don't know how to convert parameter 3
 Traceback (most recent call last):
-  File "C:\Users\Administrator\Desktop\qclawTranslate\diag_system.py", line 14, in <module>
-    print("  ✓ main.py 导入成功（无语法错误）")
-UnicodeEncodeError: 'gbk' codec can't encode character '\u2713' in position 2: illegal multibyte sequence
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\Administrator\Desktop\qclawTranslate\diag_system.py", line 16, in <module>
-    print(f"  ✗ 导入失败: {e}")
-UnicodeEncodeError: 'gbk' codec can't encode character '\u2717' in position 2: illegal multibyte sequence
-
-============================================================
-[ERROR] EOFError: EOF when reading a line
-Traceback (most recent call last):
-  File "C:\Users\Administrator\Desktop\qclawTranslate\diag_full.py", line 407, in <module>
-    input("  >>> 按 Enter 继续 <<<")
-EOFError: EOF when reading a line
+  File "D:\qclawTranslate\diag_copysel.py", line 167, in <module>
+    user32.EnumChildWindows(hwnd, enum_child, notepad_tb_hwnds)
+ctypes.ArgumentError: argument 3: TypeError: Don't know how to convert parameter 3
