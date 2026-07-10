@@ -1,9 +1,16 @@
-"""qclawTranslate v1.4 - 配置文件（翻译 + CosyVoice WebSocket TTS）"""
+"""qclawTranslate v1.5.2 - 配置文件（翻译 + CosyVoice WebSocket TTS）"""
 
 import json
 import os
+import sys
 
-CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+# PyInstaller onefile 模式下 __file__ 指向临时解压目录，需用 sys.executable 定位 exe 所在目录
+if getattr(sys, 'frozen', False):
+    _BASE_DIR = os.path.dirname(sys.executable)
+else:
+    _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+CONFIG_FILE = os.path.join(_BASE_DIR, "config.json")
 
 DEFAULT_CONFIG = {
     # ═══ 翻译引擎 ═══
@@ -37,6 +44,6 @@ def load_config():
     return dict(DEFAULT_CONFIG)
 
 def save_config(cfg):
-    os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
+    os.makedirs(_BASE_DIR, exist_ok=True)
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2, ensure_ascii=False)

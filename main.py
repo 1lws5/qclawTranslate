@@ -596,10 +596,31 @@ def _copy_selection_fallback(hwnd):
     return new_text if new_text else ""
 
 
-# --- GetAsyncKeyState 热键轮询（替代 RegisterHotKey） ---
-VK_CONTROL = 0x11
+# --- RegisterHotKey 全局热键（Alt+Q/E） ---
+WM_HOTKEY = 0x0312
+MOD_ALT = 0x0001
 VK_Q = 0x51
 VK_E = 0x45
+HOTKEY_ID_TRANSLATE = 1
+HOTKEY_ID_TTS = 2
+
+
+class _NativeEventFilter(QAbstractNativeEventFilter):
+    """拦截 WM_HOTKEY，分发到对应回调。"""
+    def __init__(self, callback_map):
+        super().__init__()
+        self._cb = callback_map
+
+    def nativeEventFilter(self, eventType, message):
+        if eventType == b"windows_generic_MSG":
+            msg = wintypes.MSG.from_address(int(message))
+            if msg.message == WM_HOTKEY:
+                hid = msg.wParam
+                cb = self._cb.get(hid)
+                if cb:
+                    cb()
+                    return True, 0
+        return False, 0
 
 
 # ━━━━━━━━━━━━━━━━━━━━ 设置对话框 ━━━━━━━━━━━━━━━━━━━━
@@ -894,7 +915,9 @@ class MainWindow(QMainWindow):
             e.ignore()
 
     def _quit(self):
-        self._hk_timer.stop()
+        user32 = ctypes.windll.user32
+        user32.UnregisterHotKey(None, HOTKEY_ID_TRANSLATE)
+        user32.UnregisterHotKey(None, HOTKEY_ID_TTS)
         self.tray.hide()
         QApplication.quit()
 
@@ -931,28 +954,18 @@ class MainWindow(QMainWindow):
 
     # ── 热键 ──
     def _setup_hotkeys(self):
-        """GetAsyncKeyState 轮询热键 Ctrl+Q / Ctrl+E（50ms）"""
-        self._q_was_down = False
-        self._e_was_down = False
-        self._hk_timer = QTimer(self, interval=50, timeout=self._poll_hotkeys)
-        self._hk_timer.start()
-
-    def _poll_hotkeys(self):
-        """每 50ms 检查一次 Ctrl+Q / Ctrl+E 是否按下"""
+        """RegisterHotKey 注册全局热键 Alt+Q / Alt+E"""
         user32 = ctypes.windll.user32
-        ctrl = user32.GetAsyncKeyState(VK_CONTROL) & 0x8000
-        q_down = user32.GetAsyncKeyState(VK_Q) & 0x8000
-        e_down = user32.GetAsyncKeyState(VK_E) & 0x8000
-        if ctrl:
-            if q_down and not self._q_was_down:
-                self._hotkey_translate_action()
-            if e_down and not self._e_was_down:
-                self._hotkey_tts_action()
-        self._q_was_down = q_down
-        self._e_was_down = e_down
+        user32.RegisterHotKey(None, HOTKEY_ID_TRANSLATE, MOD_ALT, VK_Q)
+        user32.RegisterHotKey(None, HOTKEY_ID_TTS, MOD_ALT, VK_E)
+        self._native_filter = _NativeEventFilter({
+            HOTKEY_ID_TRANSLATE: self._hotkey_translate_action,
+            HOTKEY_ID_TTS: self._hotkey_tts_action,
+        })
+        QApplication.instance().installNativeEventFilter(self._native_filter)
 
     def _hotkey_translate_action(self):
-        """Ctrl+Q — 读取焦点窗口选中文字→翻译（UIA优先，Ctrl+C回退）"""
+        """Alt+Q — 读取前台窗口选中文字→翻译（UIA优先，Ctrl+C回退）"""
         user32 = ctypes.windll.user32
         hwnd = user32.GetForegroundWindow()
         if hwnd == int(self.winId()):
@@ -968,7 +981,7 @@ class MainWindow(QMainWindow):
         self._do_translate()
 
     def _hotkey_tts_action(self):
-        """Ctrl+E — 读取焦点窗口选中文字→朗读（UIA优先，Ctrl+C回退）"""
+        """Alt+E — 读取前台窗口选中文字→朗读（UIA优先，Ctrl+C回退）"""
         user32 = ctypes.windll.user32
         hwnd = user32.GetForegroundWindow()
         if hwnd == int(self.winId()):
