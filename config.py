@@ -14,7 +14,7 @@ DEFAULT_CONFIG = {
 
     # ═══ TTS 引擎 (CosyVoice WebSocket) ═══
     "tts_ws_url": "wss://ws-c80jgdae5squls8x.cn-beijing.maas.aliyuncs.com/api-ws/v1/inference",
-    "tts_api_key": "sk-ws-H.RPXHRRM.5kzO.MEUCIQCKEQ-cu8FyE7369QEfi2kxdrBSydUDzQc5reToEaGoIwIgPJ0MR9fZ9ERl00pisWQ9m1pdgmvENiOlq5tEZ-4_tLM",
+    "tts_api_key": "",
     "tts_model": "cosyvoice-v3-flash",
     "tts_voice": "longanyang",
 

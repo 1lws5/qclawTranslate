@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-qclawTranslate v1.4 — 翻译+TTS（CosyVoice WS + MCI播放 + 原生热键）
+qclawTranslate v1.5.2 — 翻译+TTS（CosyVoice WS + MCI播放 + 原生热键）
 """
 import sys, os, json, ssl, time, tempfile, threading, traceback, uuid, ctypes, urllib.request, urllib.parse, urllib.error
 from ctypes import wintypes
@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import *
 from config import load_config, save_config
 
 APP_NAME = "qclawTranslate"
-VERSION  = "1.4.0"
+VERSION  = "1.5.2"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ━━━━━━━━━━━━━━━━━━━━ 全局异常钩子 ━━━━━━━━━━━━━━━━━━━━
@@ -843,6 +843,12 @@ class MainWindow(QMainWindow):
     # ── 托盘 ──
     def _setup_tray(self):
         self.tray = QSystemTrayIcon(self)
+        icon_path = os.path.join(BASE_DIR, "qclaw.ico")
+        if os.path.exists(icon_path):
+            self.tray.setIcon(QIcon(icon_path))
+        else:
+            # 没有图标文件时用标准图标兜底，确保托盘一定有图标
+            self.tray.setIcon(self.style().standardIcon(QStyle.SP_ComputerIcon))
         self.tray.setToolTip(f"{APP_NAME} v{VERSION} — 双击恢复窗口 | Ctrl+Q 翻译 | Ctrl+E 朗读")
         mm = QMenu()
         mm.setStyleSheet("QMenu{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:4px;}"
@@ -1046,15 +1052,20 @@ class MainWindow(QMainWindow):
 
     # ── 交换 ──
     def _swap(self):
-        si = self.src.currentIndex(); di = self.dst.currentIndex()
-        if si == di:
-            return
-        # 如果源是 auto，不让 swap 后目标变成 auto
         src_code = self.src.currentData()
         dst_code = self.dst.currentData()
+        # auto 只能做源语言，如果源是 auto，则把目标变源，源切换为上次目标的反向
         if src_code == "auto":
-            return
-        self.src.setCurrentIndex(di); self.dst.setCurrentIndex(si)
+            # 源是 auto 时，把目标语言提到源，源切换为原目标语言
+            self.src.setCurrentIndex(self.dst.currentIndex())
+            # 目标切换为中文简体作为默认
+            for i in range(self.dst.count()):
+                if self.dst.itemData(i) == "zh-Hans":
+                    self.dst.setCurrentIndex(i)
+                    break
+        else:
+            si = self.src.currentIndex(); di = self.dst.currentIndex()
+            self.src.setCurrentIndex(di); self.dst.setCurrentIndex(si)
         self._last_text = ""  # 允许重新翻译
         # 交换文本框内容
         o = self.output_edit.toPlainText(); i = self.input_edit.toPlainText()
@@ -1084,20 +1095,32 @@ def _toggle_startup(on):
 
 # ━━━━━━━━━━━━━━━━━━━━ 入口 ━━━━━━━━━━━━━━━━━━━━
 def main():
-    # 单实例锁 — Windows 标准互斥锁，不杀进程不调 tasklist
+    # 单实例锁 — Windows 标准互斥锁
     kernel32 = ctypes.windll.kernel32
     user32   = ctypes.windll.user32
     ERROR_ALREADY_EXISTS = 183
     mutex_name = f"Global\\{APP_NAME}_SingleInstance"
-    kernel32.CreateMutexW(None, False, mutex_name)
+    mutex_handle = kernel32.CreateMutexW(None, False, mutex_name)
     if kernel32.GetLastError() == ERROR_ALREADY_EXISTS:
-        # 已有实例 → 激活已有窗口 + 闪任务栏/托盘
+        # 已有实例 → 激活已有窗口
         existing = user32.FindWindowW(None, "qclawTranslate")
         if existing:
-            user32.ShowWindow(existing, 9)   # SW_RESTORE
-            user32.ShowWindow(existing, 5)   # SW_SHOW
+            # 用 SW_SHOWNORMAL (1) 而非 SW_RESTORE，确保从 hidden 状态也能恢复
+            user32.ShowWindow(existing, 1)   # SW_SHOWNORMAL
             user32.SetForegroundWindow(existing)
             user32.FlashWindow(existing, True)
+        else:
+            # 窗口标题找不到时尝试枚举所有顶级窗口
+            def _enum_proc(hwnd, lparam):
+                title = ctypes.create_unicode_buffer(256)
+                user32.GetWindowTextW(hwnd, title, 256)
+                if user32.IsWindowVisible(hwnd) and "qclaw" in title.value.lower():
+                    user32.ShowWindow(hwnd, 1)
+                    user32.SetForegroundWindow(hwnd)
+                    return False  # 停止枚举
+                return True
+            ENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_size_t, ctypes.c_size_t)
+            user32.EnumWindows(ENUMPROC(_enum_proc), 0)
         sys.exit(0)
 
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)

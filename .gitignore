@@ -30,6 +30,12 @@ test_*.mp3
 *.swp
 *.swo
 
+# 配置文件（含API Key，不推送）
+config.json
+
+# 临时归档列表
+archive_list*.txt
+
 # 系统
 Thumbs.db
 Desktop.ini
