@@ -576,11 +576,12 @@ def _send_ctrl_c_sendinput():
 
 def _copy_selection_fallback(hwnd):
     """SendInput Ctrl+C 搬运选中文字。仅当 UIA 不可用时使用。
+    不切焦点——Ctrl+C 直接发向前台窗口（即用户正在操作的窗口）。
     所有分支恢复剪贴板。返回文字或空串。"""
     if hwnd is None or hwnd == 0:
         return ""
     old_clip = _get_clipboard_text()
-    _bring_to_front_hwnd(hwnd)
+    # 不调用 _bring_to_front_hwnd——避免焦点切到 qclawTranslate 自身
     _send_ctrl_c_sendinput()
     deadline = time.perf_counter() + 1.2
     new_text = None
