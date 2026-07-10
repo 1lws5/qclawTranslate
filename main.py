@@ -566,6 +566,9 @@ def _send_ctrl_c_sendinput():
             if up:
                 inp.u.ki.dwFlags = KEYEVENTF_KEYUP
             ctypes.windll.user32.SendInput(1, byref(inp), sizeof(INP))
+        # ★ 新增：先释放 Alt 键（VK_MENU=0x12），清除热键残留的 Alt 按下状态
+        _send(0x12, True)
+        time.sleep(0.01)
         _send(0x11); time.sleep(0.01)
         _send(0x43); time.sleep(0.01)
         _send(0x43, True); time.sleep(0.01)
