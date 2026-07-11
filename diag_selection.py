@@ -17,10 +17,13 @@ CF_UNICODETEXT = 13
 
 # ━━━━━━━━━━━━━━━━━━━━ 纯 ctypes 剪贴板 ━━━━━━━━━━━━
 
-# 设置返回类型，避免 64 位指针被截断为 32 位
+# 设置返回类型和参数类型，避免 64 位指针被截断
 kernel32.GlobalLock.restype = ctypes.c_void_p
+kernel32.GlobalLock.argtypes = [ctypes.c_void_p]
 kernel32.GlobalUnlock.restype = ctypes.c_int
+kernel32.GlobalUnlock.argtypes = [ctypes.c_void_p]
 user32.GetClipboardData.restype = ctypes.c_void_p
+user32.GetClipboardData.argtypes = [ctypes.c_uint]
 
 def diag_get_clipboard_text():
     """纯 ctypes 读剪贴板，返回 (成功标志, 内容或错误信息)"""
@@ -361,42 +364,33 @@ def main():
 
     # 枚举所有可见窗口，让用户选择目标
     windows = enum_visible_windows()
-    # 按进程名分组显示，优先显示 Edge/Anki
+    # 过滤掉明显的无关窗口（终端、资源管理器等）
+    skip_kw = ('windowsterminal', 'cmd.exe', 'conhost', 'explorer', 'searchhost',
+               'shellexperiencehost', 'startmenuexperiencehost', 'textinputhost',
+               'applicationframehost', 'systemsettings', 'taskmgr')
     targets = []
     for i, (hwnd, title, pname, pid) in enumerate(windows):
         pname_lower = pname.lower()
-        if any(kw in pname_lower for kw in ('edge', 'anki', 'chrome', 'firefox', 'notepad')):
+        if not any(kw in pname_lower for kw in skip_kw):
             targets.append((i, hwnd, title, pname, pid))
 
     if not targets:
-        print("\n未找到 Edge/Anki/Chrome/Firefox/Notepad 窗口。")
-        print("\n所有可见窗口:")
-        for i, (hwnd, title, pname, pid) in enumerate(windows):
-            print(f"  [{i}] {pname} — \"{title[:60]}\" (0x{hwnd:X})")
-        print("\n请手动输入窗口编号:")
-        try:
-            choice = int(input("> "))
-        except (ValueError, EOFError):
-            print("无效输入，退出")
-            return
-        if choice < 0 or choice >= len(windows):
-            print("超出范围，退出")
-            return
-        hwnd, title, process_name, pid = windows[choice][0], windows[choice][1], windows[choice][2], windows[choice][3]
-    else:
-        print("\n找到以下目标窗口:")
-        for j, (i, hwnd, title, pname, pid) in enumerate(targets):
-            print(f"  [{j}] {pname} — \"{title[:60]}\" (0x{hwnd:X})")
-        print(f"\n请选择目标窗口编号 (0-{len(targets)-1})，或按回车选第一个:")
-        try:
-            raw = input("> ").strip()
-            choice = int(raw) if raw else 0
-        except (ValueError, EOFError):
-            choice = 0
-        if choice < 0 or choice >= len(targets):
-            print("超出范围，退出")
-            return
-        _, hwnd, title, process_name, pid = targets[choice]
+        print("\n未找到可用窗口，退出。")
+        return
+
+    print("\n可用窗口:")
+    for j, (i, hwnd, title, pname, pid) in enumerate(targets):
+        print(f"  [{j}] {pname} — \"{title[:60]}\" (0x{hwnd:X})")
+    print(f"\n请选择目标窗口编号 (0-{len(targets)-1}):")
+    try:
+        raw = input("> ").strip()
+        choice = int(raw) if raw else 0
+    except (ValueError, EOFError):
+        choice = 0
+    if choice < 0 or choice >= len(targets):
+        print("超出范围，退出")
+        return
+    _, hwnd, title, process_name, pid = targets[choice]
 
     print(f"\n[1] 目标窗口信息")
     print(f"  hwnd: 0x{hwnd:X}")
