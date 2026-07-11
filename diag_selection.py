@@ -54,14 +54,21 @@ def diag_get_clipboard_text():
 
 def diag_send_ctrl_c():
     """诊断版 SendInput Ctrl+C，打印每步结果"""
+    import ctypes.wintypes as wt
 
+    class MI(Structure):
+        _fields_ = [('dx', wt.LONG), ('dy', wt.LONG),
+                    ('mouseData', c_ulong), ('dwFlags', c_ulong),
+                    ('time', c_ulong), ('dwExtraInfo', ctypes.c_size_t)]
     class KI(Structure):
-        _fields_ = [("wVk", c_ushort), ("wScan", c_ushort), ("dwFlags", c_ulong),
-                    ("time", c_ulong), ("dwExtraInfo", ctypes.POINTER(c_ulong))]
+        _fields_ = [('wVk', c_ushort), ('wScan', c_ushort), ('dwFlags', c_ulong),
+                    ('time', c_ulong), ('dwExtraInfo', ctypes.c_size_t)]
+    class HI(Structure):
+        _fields_ = [('uMsg', c_ulong), ('wParamL', c_ushort), ('wParamH', c_ushort)]
     class IU(Union):
-        _fields_ = [("ki", KI)]
+        _fields_ = [('mi', MI), ('ki', KI), ('hi', HI)]
     class INP(Structure):
-        _fields_ = [("type", c_ulong), ("u", IU)]
+        _fields_ = [('type', c_ulong), ('u', IU)]
     KEYEVENTF_KEYUP = 0x0002
 
     def _send_diag(vk, up=False, label=""):
