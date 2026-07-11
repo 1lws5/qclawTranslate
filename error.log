@@ -12,3 +12,82 @@ Traceback (most recent call last):
   File "D:\qclawTranslate\diag_copysel.py", line 167, in <module>
     user32.EnumChildWindows(hwnd, enum_child, notepad_tb_hwnds)
 ctypes.ArgumentError: argument 3: TypeError: Don't know how to convert parameter 3
+
+============================================================
+[ERROR] OSError: exception: access violation reading 0x00000000734A1A60
+Traceback (most recent call last):
+  File "D:\qclawTranslate\diag_selection.py", line 338, in <module>
+    main()
+    ~~~~^^
+  File "D:\qclawTranslate\diag_selection.py", line 317, in main
+    ctrl_c_result = diag_ctrl_c_fallback(hwnd)
+  File "D:\qclawTranslate\diag_selection.py", line 216, in diag_ctrl_c_fallback
+    ok, old = diag_get_clipboard_text()
+              ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\qclawTranslate\diag_selection.py", line 37, in diag_get_clipboard_text
+    text = ctypes.wstring_at(ptr)
+  File "C:\Users\Administrator\AppData\Local\Python\pythoncore-3.14-64\Lib\ctypes\__init__.py", line 639, in wstring_at
+    return _wstring_at(ptr, size)
+OSError: exception: access violation reading 0x00000000734A1A60
+
+============================================================
+[ERROR] OSError: exception: access violation reading 0x000000007B7A3350
+Traceback (most recent call last):
+  File "D:\qclawTranslate\diag_selection.py", line 338, in <module>
+    main()
+    ~~~~^^
+  File "D:\qclawTranslate\diag_selection.py", line 317, in main
+    ctrl_c_result = diag_ctrl_c_fallback(hwnd)
+  File "D:\qclawTranslate\diag_selection.py", line 216, in diag_ctrl_c_fallback
+    ok, old = diag_get_clipboard_text()
+              ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\qclawTranslate\diag_selection.py", line 37, in diag_get_clipboard_text
+    text = ctypes.wstring_at(ptr)
+  File "C:\Users\Administrator\AppData\Local\Python\pythoncore-3.14-64\Lib\ctypes\__init__.py", line 639, in wstring_at
+    return _wstring_at(ptr, size)
+OSError: exception: access violation reading 0x000000007B7A3350
+
+============================================================
+[ERROR] ArgumentError: argument 1: OverflowError: int too long to convert
+Traceback (most recent call last):
+  File "D:\qclawTranslate\diag_selection.py", line 434, in <module>
+    main()
+    ~~~~^^
+  File "D:\qclawTranslate\diag_selection.py", line 413, in main
+    ctrl_c_result = diag_ctrl_c_fallback(hwnd)
+  File "D:\qclawTranslate\diag_selection.py", line 242, in diag_ctrl_c_fallback
+    ok, old = diag_get_clipboard_text()
+              ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\qclawTranslate\diag_selection.py", line 37, in diag_get_clipboard_text
+    ptr = kernel32.GlobalLock(h)
+ctypes.ArgumentError: argument 1: OverflowError: int too long to convert
+
+============================================================
+[ERROR] ArgumentError: argument 1: OverflowError: int too long to convert
+Traceback (most recent call last):
+  File "D:\qclawTranslate\diag_selection.py", line 434, in <module>
+    main()
+    ~~~~^^
+  File "D:\qclawTranslate\diag_selection.py", line 413, in main
+    ctrl_c_result = diag_ctrl_c_fallback(hwnd)
+  File "D:\qclawTranslate\diag_selection.py", line 242, in diag_ctrl_c_fallback
+    ok, old = diag_get_clipboard_text()
+              ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\qclawTranslate\diag_selection.py", line 37, in diag_get_clipboard_text
+    ptr = kernel32.GlobalLock(h)
+ctypes.ArgumentError: argument 1: OverflowError: int too long to convert
+
+============================================================
+[ERROR] ArgumentError: argument 1: OverflowError: int too long to convert
+Traceback (most recent call last):
+  File "D:\qclawTranslate\diag_selection.py", line 434, in <module>
+    main()
+    ~~~~^^
+  File "D:\qclawTranslate\diag_selection.py", line 413, in main
+    ctrl_c_result = diag_ctrl_c_fallback(hwnd)
+  File "D:\qclawTranslate\diag_selection.py", line 242, in diag_ctrl_c_fallback
+    ok, old = diag_get_clipboard_text()
+              ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\qclawTranslate\diag_selection.py", line 37, in diag_get_clipboard_text
+    ptr = kernel32.GlobalLock(h)
+ctypes.ArgumentError: argument 1: OverflowError: int too long to convert
