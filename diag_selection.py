@@ -17,6 +17,11 @@ CF_UNICODETEXT = 13
 
 # ━━━━━━━━━━━━━━━━━━━━ 纯 ctypes 剪贴板 ━━━━━━━━━━━━
 
+# 设置返回类型，避免 64 位指针被截断为 32 位
+kernel32.GlobalLock.restype = ctypes.c_void_p
+kernel32.GlobalUnlock.restype = ctypes.c_int
+user32.GetClipboardData.restype = ctypes.c_void_p
+
 def diag_get_clipboard_text():
     """纯 ctypes 读剪贴板，返回 (成功标志, 内容或错误信息)"""
     if not user32.OpenClipboard(None):
@@ -212,6 +217,27 @@ def diag_ctrl_c_fallback(hwnd):
     """诊断版 Ctrl+C fallback，打印详细过程"""
     print(f"\n[3] Ctrl+C fallback 诊断")
 
+    # 先把目标窗口切到前台，否则 Ctrl+C 发不到目标
+    print(f"  切换目标窗口到前台: hwnd=0x{hwnd:X}")
+    cur = user32.GetForegroundWindow()
+    if cur != hwnd:
+        ctid = user32.GetWindowThreadProcessId(cur, None)
+        ttid = user32.GetWindowThreadProcessId(hwnd, None)
+        if ctid != ttid:
+            user32.AttachThreadInput(ttid, ctid, True)
+        user32.SetForegroundWindow(hwnd)
+        user32.BringWindowToTop(hwnd)
+        time.sleep(0.3)  # 给窗口时间切换
+        if ctid != ttid:
+            user32.AttachThreadInput(ttid, ctid, False)
+        fg_now = user32.GetForegroundWindow()
+        if fg_now == hwnd:
+            print(f"  前台切换成功")
+        else:
+            print(f"  ⚠ 前台切换失败，当前前台=0x{fg_now:X}")
+    else:
+        print(f"  目标已在前台")
+
     # a. 旧剪贴板内容
     ok, old = diag_get_clipboard_text()
     if ok:
@@ -259,6 +285,44 @@ def diag_ctrl_c_fallback(hwnd):
 
 # ━━━━━━━━━━━━━━━━━━━━ 主流程 ━━━━━━━━━━━━
 
+def enum_visible_windows():
+    """枚举所有可见顶层窗口，返回 [(hwnd, title, process_name, pid)]"""
+    results = []
+
+    @ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+    def callback(hwnd, lparam):
+        if not user32.IsWindowVisible(hwnd):
+            return True
+        length = user32.GetWindowTextLengthW(hwnd)
+        if length == 0:
+            return True
+        buf = ctypes.create_unicode_buffer(length + 1)
+        user32.GetWindowTextW(hwnd, buf, length + 1)
+        title = buf.value
+        pid = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, byref(pid))
+        process_name = "?"
+        try:
+            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+            h = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid.value)
+            if h:
+                try:
+                    psapi = ctypes.windll.psapi
+                    buf2 = ctypes.create_unicode_buffer(260)
+                    size = wintypes.DWORD(260)
+                    if psapi.GetModuleFileNameExW(h, None, buf2, size):
+                        process_name = os.path.basename(buf2.value)
+                finally:
+                    kernel32.CloseHandle(h)
+        except Exception:
+            pass
+        results.append((hwnd, title, process_name, pid.value))
+        return True
+
+    user32.EnumWindows(callback, 0)
+    return results
+
+
 def get_window_info(hwnd):
     """获取窗口标题和进程名"""
     # 标题
@@ -292,20 +356,52 @@ def get_window_info(hwnd):
 
 def main():
     print("=" * 60)
-    print("取词诊断开始")
+    print("取词诊断脚本")
     print("=" * 60)
 
-    # [1] 前台窗口信息
-    hwnd = user32.GetForegroundWindow()
-    title, process_name, pid = get_window_info(hwnd)
-    print(f"\n[1] 前台窗口信息")
-    print(f"  hwnd: 0x{hwnd:X}" if hwnd else "  hwnd: 0 (无前台窗口)")
+    # 枚举所有可见窗口，让用户选择目标
+    windows = enum_visible_windows()
+    # 按进程名分组显示，优先显示 Edge/Anki
+    targets = []
+    for i, (hwnd, title, pname, pid) in enumerate(windows):
+        pname_lower = pname.lower()
+        if any(kw in pname_lower for kw in ('edge', 'anki', 'chrome', 'firefox', 'notepad')):
+            targets.append((i, hwnd, title, pname, pid))
+
+    if not targets:
+        print("\n未找到 Edge/Anki/Chrome/Firefox/Notepad 窗口。")
+        print("\n所有可见窗口:")
+        for i, (hwnd, title, pname, pid) in enumerate(windows):
+            print(f"  [{i}] {pname} — \"{title[:60]}\" (0x{hwnd:X})")
+        print("\n请手动输入窗口编号:")
+        try:
+            choice = int(input("> "))
+        except (ValueError, EOFError):
+            print("无效输入，退出")
+            return
+        if choice < 0 or choice >= len(windows):
+            print("超出范围，退出")
+            return
+        hwnd, title, process_name, pid = windows[choice][0], windows[choice][1], windows[choice][2], windows[choice][3]
+    else:
+        print("\n找到以下目标窗口:")
+        for j, (i, hwnd, title, pname, pid) in enumerate(targets):
+            print(f"  [{j}] {pname} — \"{title[:60]}\" (0x{hwnd:X})")
+        print(f"\n请选择目标窗口编号 (0-{len(targets)-1})，或按回车选第一个:")
+        try:
+            raw = input("> ").strip()
+            choice = int(raw) if raw else 0
+        except (ValueError, EOFError):
+            choice = 0
+        if choice < 0 or choice >= len(targets):
+            print("超出范围，退出")
+            return
+        _, hwnd, title, process_name, pid = targets[choice]
+
+    print(f"\n[1] 目标窗口信息")
+    print(f"  hwnd: 0x{hwnd:X}")
     print(f"  title: \"{title}\"")
     print(f"  process: {process_name} (PID={pid})")
-
-    if not hwnd:
-        print("\n无前台窗口，诊断终止")
-        return
 
     # [2] UIA 取词诊断
     uia_result = diag_read_selection_uia(hwnd)
@@ -323,7 +419,7 @@ def main():
     print(f"\n{'=' * 60}")
     print(f"[4] 诊断摘要")
     print(f"{'=' * 60}")
-    print(f"  前台窗口: {process_name} — \"{title}\"")
+    print(f"  目标窗口: {process_name} — \"{title}\"")
     print(f"  UIA: {'成功' if uia_success else '失败'}" + (f" — \"{uia_result[:80]}\"" if uia_success else ""))
     if not uia_success:
         print(f"  Ctrl+C: {'成功' if ctrl_c_result else '失败'}" + (f" — \"{ctrl_c_result[:80]}\"" if ctrl_c_result else ""))
