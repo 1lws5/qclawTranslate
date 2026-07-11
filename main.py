@@ -566,6 +566,9 @@ def _send_ctrl_c_sendinput():
             if up:
                 inp.u.ki.dwFlags = KEYEVENTF_KEYUP
             ctypes.windll.user32.SendInput(1, byref(inp), sizeof(INP))
+        # ★ 新增：先释放 Ctrl 键（VK_CONTROL=0x11），清除热键残留的 Ctrl 按下状态
+        _send(0x11, True)
+        time.sleep(0.02)
         _send(0x11); time.sleep(0.01)
         _send(0x43); time.sleep(0.01)
         _send(0x43, True); time.sleep(0.01)
