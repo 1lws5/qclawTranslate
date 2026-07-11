@@ -566,9 +566,6 @@ def _send_ctrl_c_sendinput():
             if up:
                 inp.u.ki.dwFlags = KEYEVENTF_KEYUP
             ctypes.windll.user32.SendInput(1, byref(inp), sizeof(INP))
-        # ★ 新增：先释放 Alt 键（VK_MENU=0x12），清除热键残留的 Alt 按下状态
-        _send(0x12, True)
-        time.sleep(0.01)
         _send(0x11); time.sleep(0.01)
         _send(0x43); time.sleep(0.01)
         _send(0x43, True); time.sleep(0.01)
@@ -599,9 +596,9 @@ def _copy_selection_fallback(hwnd):
     return new_text if new_text else ""
 
 
-# --- RegisterHotKey 全局热键（Alt+Q/E） ---
+# --- RegisterHotKey 全局热键（Ctrl+Q/E） ---
 WM_HOTKEY = 0x0312
-MOD_ALT = 0x0001
+MOD_CONTROL = 0x0002
 VK_Q = 0x51
 VK_E = 0x45
 HOTKEY_ID_TRANSLATE = 1
@@ -957,10 +954,10 @@ class MainWindow(QMainWindow):
 
     # ── 热键 ──
     def _setup_hotkeys(self):
-        """RegisterHotKey 注册全局热键 Alt+Q / Alt+E"""
+        """RegisterHotKey 注册全局热键 Ctrl+Q / Ctrl+E"""
         user32 = ctypes.windll.user32
-        user32.RegisterHotKey(None, HOTKEY_ID_TRANSLATE, MOD_ALT, VK_Q)
-        user32.RegisterHotKey(None, HOTKEY_ID_TTS, MOD_ALT, VK_E)
+        user32.RegisterHotKey(None, HOTKEY_ID_TRANSLATE, MOD_CONTROL, VK_Q)
+        user32.RegisterHotKey(None, HOTKEY_ID_TTS, MOD_CONTROL, VK_E)
         self._native_filter = _NativeEventFilter({
             HOTKEY_ID_TRANSLATE: self._hotkey_translate_action,
             HOTKEY_ID_TTS: self._hotkey_tts_action,
@@ -968,7 +965,7 @@ class MainWindow(QMainWindow):
         QApplication.instance().installNativeEventFilter(self._native_filter)
 
     def _hotkey_translate_action(self):
-        """Alt+Q — 读取前台窗口选中文字→翻译（UIA优先，Ctrl+C回退）"""
+        """Ctrl+Q — 读取前台窗口选中文字→翻译（UIA优先，Ctrl+C回退）"""
         user32 = ctypes.windll.user32
         hwnd = user32.GetForegroundWindow()
         if hwnd == int(self.winId()):
@@ -984,7 +981,7 @@ class MainWindow(QMainWindow):
         self._do_translate()
 
     def _hotkey_tts_action(self):
-        """Alt+E — 读取前台窗口选中文字→朗读（UIA优先，Ctrl+C回退）"""
+        """Ctrl+E — 读取前台窗口选中文字→朗读（UIA优先，Ctrl+C回退）"""
         user32 = ctypes.windll.user32
         hwnd = user32.GetForegroundWindow()
         if hwnd == int(self.winId()):
