@@ -112,6 +112,12 @@ from urllib.parse import urlparse
 _tr_conn = None  # 模块级翻译 API 连接对象
 _tr_lock = threading.Lock()  # 连接复用锁
 
+def _reset_tr_conn():
+    """重置翻译 API 连接（连接坏了时调用）"""
+    global _tr_conn
+    with _tr_lock:
+        _tr_conn = None
+
 def _ssl():
     c = ssl.create_default_context(); c.check_hostname = False; c.verify_mode = ssl.CERT_NONE; return c
 
@@ -143,9 +149,7 @@ def _http_post(url, body_dict, headers_extra=None, timeout=20):
         else:
             return False, f"HTTP {resp.status}: {data[:500]}"
     except Exception as e:
-        global _tr_conn
-        with _tr_lock:
-            _tr_conn = None  # 连接坏了，下次重建
+        _reset_tr_conn()
         return False, str(e)
 
 def _http_get_bytes(url, timeout=20):
@@ -238,9 +242,7 @@ def ai_translate(cfg, text, src_lang, tgt_lang, on_chunk=None):
                 return {"success":True,"text":full_text.strip()}
             # streaming 拿到空结果，fallback 到非 streaming
         except Exception:
-            global _tr_conn
-            with _tr_lock:
-                _tr_conn = None
+            _reset_tr_conn()
 
         # ── fallback: 非 streaming 模式 ──
         body["stream"] = False
@@ -260,9 +262,7 @@ def ai_translate(cfg, text, src_lang, tgt_lang, on_chunk=None):
             else:
                 return {"success":False,"error":f"HTTP {resp.status}: {data[:500]}"}
         except Exception as e:
-            global _tr_conn
-            with _tr_lock:
-                _tr_conn = None
+            _reset_tr_conn()
             return {"success":False,"error":str(e)}
 
     # 兜底：Google 免费翻译
