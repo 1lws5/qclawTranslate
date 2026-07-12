@@ -84,6 +84,7 @@ QToolTip                    { background:#161b22; color:#c9d1d9; border:1px soli
 class _Bridge(QObject):
     """跨线程信号桥：不依赖 QThread，纯 QObject"""
     translate_result = pyqtSignal(dict)
+    translate_chunk  = pyqtSignal(str)   # 流式翻译片段
     tts_result       = pyqtSignal(tuple)
     test_tr          = pyqtSignal(dict)
     test_tts         = pyqtSignal(tuple)
@@ -105,21 +106,46 @@ _TTS_LANG = {"zh-Hans":"Chinese","zh-Hant":"Chinese","en":"English","ja":"Japane
              "ko":"Korean","fr":"French","de":"German","es":"Spanish","pt":"Portuguese","ru":"Russian"}
 
 # ━━━━━━━━━━━━━━━━━━━━ 网络工具 ━━━━━━━━━━━━━━━━━━━━
+import http.client
+from urllib.parse import urlparse
+
+_tr_conn = None  # 模块级翻译 API 连接对象
+_tr_lock = threading.Lock()  # 连接复用锁
+
 def _ssl():
     c = ssl.create_default_context(); c.check_hostname = False; c.verify_mode = ssl.CERT_NONE; return c
 
+def _get_tr_conn(url):
+    """复用翻译 API 的 HTTPS 连接"""
+    global _tr_conn
+    with _tr_lock:
+        if _tr_conn is None:
+            parsed = urlparse(url)
+            host = parsed.hostname
+            port = parsed.port or 443
+            _tr_conn = http.client.HTTPSConnection(host, port, context=_ssl(), timeout=30)
+        return _tr_conn
+
 def _http_post(url, body_dict, headers_extra=None, timeout=20):
-    """HTTP POST JSON → (status, data_or_err)"""
+    """HTTP POST JSON → (status, data_or_err)，复用 TCP 连接"""
     hdrs = {"Content-Type":"application/json"}
     if headers_extra: hdrs.update(headers_extra)
+    body_bytes = json.dumps(body_dict).encode("utf-8")
     try:
-        req = urllib.request.Request(url, data=json.dumps(body_dict).encode("utf-8"), headers=hdrs)
-        resp = urllib.request.urlopen(req, context=_ssl(), timeout=timeout)
-        return True, json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        err = e.read().decode("utf-8", errors="replace")[:500]
-        return False, f"HTTP {e.code}: {err}"
+        conn = _get_tr_conn(url)
+        parsed = urlparse(url)
+        path = parsed.path + ("?" + parsed.query if parsed.query else "")
+        conn.request("POST", path, body=body_bytes, headers=hdrs)
+        resp = conn.getresponse()
+        data = resp.read().decode("utf-8")
+        if 200 <= resp.status < 300:
+            return True, json.loads(data)
+        else:
+            return False, f"HTTP {resp.status}: {data[:500]}"
     except Exception as e:
+        global _tr_conn
+        with _tr_lock:
+            _tr_conn = None  # 连接坏了，下次重建
         return False, str(e)
 
 def _http_get_bytes(url, timeout=20):
@@ -139,8 +165,8 @@ _GOOGLE_MAP = {"zh-Hans":"zh-CN","zh-Hant":"zh-TW","he":"iw","auto":"auto"}
 def _g(code):
     return _GOOGLE_MAP.get(code, code.split("-")[0])
 
-def ai_translate(cfg, text, src_lang, tgt_lang):
-    """翻译主入口"""
+def ai_translate(cfg, text, src_lang, tgt_lang, on_chunk=None):
+    """翻译主入口。on_chunk callback 用于流式输出，每收到一段文本就回调一次。"""
     if not text or not text.strip():
         return {"success":False,"error":"文本为空"}
 
@@ -161,23 +187,83 @@ def ai_translate(cfg, text, src_lang, tgt_lang):
         body = {"model":model,"messages":[
             {"role":"system","content":sys_prompt},
             {"role":"user","content":text},
-        ],"temperature":0.3,"max_tokens":max(4096,len(text)*4)}
+        ],"temperature":0.3,"max_tokens":max(4096,len(text)*4),"stream":True}
 
         extra = cfg.get("translate_extra_body","").strip()
         if extra:
             try: body.update(json.loads(extra))
             except: pass
 
-        ok, data = _http_post(url, body,
-                              {"Authorization":f"Bearer {api_key}","User-Agent":"qclawTranslate/1.3"},
-                              timeout=30)
-        if ok:
-            try:
-                content = data["choices"][0]["message"]["content"].strip()
+        hdrs = {"Content-Type":"application/json",
+                "Authorization":f"Bearer {api_key}",
+                "User-Agent":"qclawTranslate/1.3"}
+        body_bytes = json.dumps(body).encode("utf-8")
+
+        # ── streaming 模式 ──
+        try:
+            conn = _get_tr_conn(url)
+            parsed = urlparse(url)
+            path = parsed.path + ("?" + parsed.query if parsed.query else "")
+            conn.request("POST", path, body=body_bytes, headers=hdrs)
+            resp = conn.getresponse()
+
+            if resp.status != 200:
+                err = resp.read().decode("utf-8")[:500]
+                return {"success":False,"error":f"HTTP {resp.status}: {err}"}
+
+            full_text = ""
+            buffer = ""
+            for line in resp:
+                buffer += line.decode("utf-8")
+                while "\n" in buffer:
+                    single, buffer = buffer.split("\n", 1)
+                    single = single.strip()
+                    if not single or not single.startswith("data:"):
+                        continue
+                    data_str = single[5:].strip()
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data_str)
+                        delta = chunk.get("choices", [{}])[0].get("delta", {})
+                        content = delta.get("content", "")
+                        if content:
+                            full_text += content
+                            if on_chunk:
+                                on_chunk(content)
+                    except Exception:
+                        continue
+
+            if full_text.strip():
+                return {"success":True,"text":full_text.strip()}
+            # streaming 拿到空结果，fallback 到非 streaming
+        except Exception:
+            global _tr_conn
+            with _tr_lock:
+                _tr_conn = None
+
+        # ── fallback: 非 streaming 模式 ──
+        body["stream"] = False
+        body_bytes2 = json.dumps(body).encode("utf-8")
+        try:
+            conn = _get_tr_conn(url)
+            parsed = urlparse(url)
+            path = parsed.path + ("?" + parsed.query if parsed.query else "")
+            conn.request("POST", path, body=body_bytes2, headers=hdrs)
+            resp = conn.getresponse()
+            data = resp.read().decode("utf-8")
+            if 200 <= resp.status < 300:
+                content = json.loads(data)["choices"][0]["message"]["content"].strip()
+                if on_chunk:
+                    on_chunk(content)
                 return {"success":True,"text":content}
-            except Exception:
-                return {"success":False,"error":"响应格式异常"}
-        return {"success":False,"error":data}
+            else:
+                return {"success":False,"error":f"HTTP {resp.status}: {data[:500]}"}
+        except Exception as e:
+            global _tr_conn
+            with _tr_lock:
+                _tr_conn = None
+            return {"success":False,"error":str(e)}
 
     # 兜底：Google 免费翻译
     try:
@@ -313,9 +399,11 @@ def play_audio(audio_bytes):
 
 # ━━━━━━━━━━━━━━━━━━━━ 后台线程 ━━━━━━━━━━━━━━━━━━━━
 def _bg_translate(cfg, text, src, dst):
-    """后台翻译线程 → 发信号到 UI"""
+    """后台翻译线程 → 流式发信号到 UI"""
     try:
-        result = ai_translate(cfg, text, src, dst)
+        def on_chunk(content):
+            _bridge.translate_chunk.emit(content)
+        result = ai_translate(cfg, text, src, dst, on_chunk=on_chunk)
         _bridge.translate_result.emit(result)
     except Exception as e:
         _bridge.translate_result.emit({"success":False,"error":str(e)})
@@ -872,6 +960,7 @@ class MainWindow(QMainWindow):
 
         # 连接信号桥
         _bridge.translate_result.connect(self._on_translate_result)
+        _bridge.translate_chunk.connect(self._on_translate_chunk)
         _bridge.tts_result.connect(self._on_tts_result)
 
     # ── 托盘 ──
@@ -1023,6 +1112,8 @@ class MainWindow(QMainWindow):
             return
         self._last_text = text
         self._translating = True
+        self._streaming_text = ""
+        self.output_edit.clear()
 
         self.btn_tr.setEnabled(False); self.btn_tr.setText("⏳ 翻译中…")
         self.status.setText("⏳ 翻译中…")
@@ -1033,10 +1124,18 @@ class MainWindow(QMainWindow):
 
         threading.Thread(target=lambda: _bg_translate(cfg, text, src_code, dst_code), daemon=True).start()
 
+    def _on_translate_chunk(self, chunk):
+        """流式翻译：逐块追加到输出框"""
+        if not hasattr(self, '_streaming_text'):
+            self._streaming_text = ""
+        self._streaming_text += chunk
+        self.output_edit.setPlainText(self._streaming_text)
+
     def _on_translate_result(self, result):
         self._translating = False
         self.btn_tr.setEnabled(True); self.btn_tr.setText("🚀  翻译")
         if result["success"]:
+            # 流式已经逐块显示了，这里用最终完整结果覆盖一次（确保格式正确）
             self.output_edit.setPlainText(result["text"])
             self.status.setText("✓ 完成")
         else:
