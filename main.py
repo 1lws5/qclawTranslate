@@ -74,7 +74,7 @@ QPushButton#btn-swap:hover  { background:#1f6feb33; border-color:#58a6ff; color:
 QPushButton#btn-settings    { background:transparent; color:#adb1b8; border:1px solid #30363d; border-radius:8px; font-size:16px; padding:6px 12px; }
 QPushButton#btn-settings:hover { background:#30363d; color:#58a6ff; border-color:#58a6ff; }
 QDialog                     { background:#161b22; border:1px solid #30363d; border-radius:16px; }
-QLineEdit                   { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:10px 14px; color:#e6edf3; font-size:13px; }
+QLineEdit                   { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:10px 14px; color:#e6edf3; font-size:13px; min-height:20px; }
 QLineEdit:focus             { border-color:#58a6ff; background:#0d1117; }
 QLabel#status               { color:#adb1b8; font-size:12px; }
 QLabel#section-title        { color:#e6edf3; font-size:15px; font-weight:700; padding-bottom:4px; }
@@ -804,7 +804,7 @@ class SettingsDialog(QDialog):
         # 底部提示 + 按钮
         lay.addSpacing(20)
         hint = QLabel("💡 配置更改后需点击保存生效")
-        hint.setStyleSheet("color:#6e7681;font-size:12px;padding:0 0 12px 0;")
+        hint.setStyleSheet("color:#adb1b8;font-size:12px;padding:0 0 12px 0;")
         lay.addWidget(hint)
         bl = QHBoxLayout(); bl.setContentsMargins(0,0,0,0); bl.addStretch()
         c = QPushButton("取消"); c.setObjectName("btn-tts"); c.clicked.connect(self.reject)
@@ -835,7 +835,7 @@ class SettingsDialog(QDialog):
         self.tr_key   = self._fld(cl,"API Key",  _tr_cfg(self.cfg)["api_key"], "sk-xx", password=True)
         self.tr_model = self._fld(cl,"模型名称",   _tr_cfg(self.cfg)["model"], "qwen-plus / qwen-turbo ...")
         self.tr_extra = self._fld(cl,"额外参数", _tr_cfg(self.cfg)["extra_body"],'{"temperature":0.3}')
-        cl.addSpacing(8); tr = QHBoxLayout(); tr.addStretch()
+        cl.addSpacing(8); tr = QHBoxLayout(); tr.setAlignment(Qt.AlignLeft)
         tb = QPushButton("🔍 测试连接"); tb.setObjectName("btn-tts")
         self.tr_test = QLabel(""); self.tr_test.setStyleSheet("color:#6e7681;font-size:11px;")
         tb.clicked.connect(self._test_translate)
@@ -875,7 +875,7 @@ class SettingsDialog(QDialog):
         self.tts_key   = self._fld(cl,"API Key",  _tts_cfg(self.cfg)["api_key"], "sk-xx", password=True)
         self.tts_model = self._fld(cl,"TTS 模型", _tts_cfg(self.cfg)["model"], "cosyvoice-v3-flash")
         self.tts_voice = self._fld(cl,"音色",     _tts_cfg(self.cfg)["voice"], "longanyang / longxiaochun ...")
-        cl.addSpacing(8); tr2 = QHBoxLayout(); tr2.addStretch()
+        cl.addSpacing(8); tr2 = QHBoxLayout(); tr2.setAlignment(Qt.AlignLeft)
         tb2 = QPushButton("🔊 试听"); tb2.setObjectName("btn-tts")
         self.tts_test = QLabel(""); self.tts_test.setStyleSheet("color:#6e7681;font-size:11px;")
         tb2.clicked.connect(self._test_tts)
@@ -894,7 +894,7 @@ class SettingsDialog(QDialog):
         l.addSpacing(12)
         speed_lbl = QLabel("语速"); speed_lbl.setStyleSheet("font-size:13px;font-weight:600;color:#e6edf3;")
         l.addWidget(speed_lbl)
-        speed_row = QHBoxLayout(); speed_row.setSpacing(12)
+        speed_row = QHBoxLayout(); speed_row.setSpacing(12); speed_row.setAlignment(Qt.AlignVCenter)
         self.tts_speed = QSlider(Qt.Horizontal); self.tts_speed.setMinimum(50); self.tts_speed.setMaximum(200); self.tts_speed.setValue(int(self.cfg["tts"]["playback"]["speed"]*100))
         self.tts_speed_lbl = QLabel(f"{self.tts_speed.value()/100:.1f}x"); self.tts_speed_lbl.setStyleSheet("color:#adb1b8;font-size:13px;min-width:36px;")
         self.tts_speed.valueChanged.connect(lambda v: self.tts_speed_lbl.setText(f"{v/100:.1f}x"))
