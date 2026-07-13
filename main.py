@@ -43,10 +43,10 @@ sys.excepthook = _log_error
 # ━━━━━━━━━━━━━━━━━━━━ QSS ━━━━━━━━━━━━━━━━━━━━
 QSS = r'''
 QMainWindow                 { background:#0d1117; }
-QWidget                     { font-family:"Segoe UI","Microsoft YaHei UI"; font-size:13px; color:#c9d1d9; }
-QFrame#card                 { background:#161b22; border:2px solid #21262d; border-radius:14px; }
-QTextEdit                   { background:#0d1117; border:2px solid #21262d; border-radius:12px; padding:14px 16px; color:#c9d1d9; font-size:14px; }
-QTextEdit:focus             { border:2px solid #58a6ff; background:#0d1117; }
+QWidget                     { font-family:"Segoe UI","Microsoft YaHei UI"; font-size:13px; color:#e6edf3; }
+QFrame#card                 { background:#161b22; border:1px solid #21262d; border-radius:12px; }
+QTextEdit                   { background:#0d1117; border:1px solid #21262d; border-radius:10px; padding:14px 16px; color:#e6edf3; font-size:14px; }
+QTextEdit:focus             { border:1px solid #58a6ff; background:#0d1117; }
 QTextEdit[readOnly="true"]  { background:#0d1117; }
 QScrollBar:vertical         { background:transparent; width:8px; margin:4px 0; }
 QScrollBar::handle:vertical { background:#30363d; border-radius:4px; min-height:36px; }
@@ -56,36 +56,46 @@ QScrollBar:horizontal       { background:transparent; height:8px; }
 QScrollBar::handle:horizontal { background:#30363d; border-radius:4px; min-width:36px; }
 QScrollBar::handle:horizontal:hover { background:#58a6ff; }
 QScrollBar::add-line:horizontal,QScrollBar::sub-line:horizontal { width:0px; }
-QComboBox                   { background:#21262d; border:2px solid #30363d; border-radius:10px; padding:8px 14px; color:#c9d1d9; font-size:13px; min-height:22px; }
+QComboBox                   { background:#21262d; border:1px solid #30363d; border-radius:8px; padding:8px 14px; color:#e6edf3; font-size:13px; min-height:22px; }
 QComboBox:hover             { border-color:#58a6ff; }
 QComboBox:focus             { border-color:#58a6ff; background:#161b22; }
 QComboBox::drop-down        { border:none; padding-right:10px; width:24px; }
 QComboBox::down-arrow       { image:none; width:0px; }
-QComboBox QAbstractItemView { background:#161b22; border:2px solid #30363d; border-radius:8px; padding:6px; selection-background-color:#1f6feb44; outline:none; }
-QPushButton#btn-primary     { background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #3a5afc,stop:1 #5b7cff); color:#fff; border:2px solid #5b7cff; border-radius:10px; padding:10px 24px; font-weight:600; font-size:13px; }
+QComboBox QAbstractItemView { background:#161b22; border:1px solid #30363d; border-radius:8px; padding:6px; selection-background-color:#1f6feb44; outline:none; }
+QPushButton#btn-primary     { background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #3a5afc,stop:1 #5b7cff); color:#fff; border:1px solid #5b7cff; border-radius:8px; padding:10px 24px; font-weight:600; font-size:13px; }
 QPushButton#btn-primary:hover   { background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #4e6eff,stop:1 #7890ff); border-color:#7890ff; }
 QPushButton#btn-primary:pressed { background:#2a4aec; border-color:#2a4aec; }
-QPushButton#btn-primary:disabled { background:#21262d; color:#484f58; border-color:#30363d; }
-QPushButton#btn-tts         { background:#21262d; color:#c9d1d9; border:2px solid #30363d; border-radius:10px; padding:10px 18px; font-weight:600; font-size:13px; }
+QPushButton#btn-primary:disabled { background:#21262d; color:#6e7681; border-color:#30363d; }
+QPushButton#btn-tts         { background:#21262d; color:#e6edf3; border:1px solid #30363d; border-radius:8px; padding:10px 18px; font-weight:600; font-size:13px; }
 QPushButton#btn-tts:hover   { background:#30363d; border-color:#58a6ff; color:#58a6ff; }
 QPushButton#btn-tts:pressed { background:#161b22; }
-QPushButton#btn-swap        { background:#21262d; color:#8b949e; border:2px solid #30363d; border-radius:22px; font-size:18px; font-weight:bold; padding:0px; min-width:40px;max-width:40px;min-height:40px;max-height:40px; }
+QPushButton#btn-swap        { background:#21262d; color:#adb1b8; border:1px solid #30363d; border-radius:22px; font-size:18px; font-weight:bold; padding:0px; min-width:40px;max-width:40px;min-height:40px;max-height:40px; }
 QPushButton#btn-swap:hover  { background:#1f6feb33; border-color:#58a6ff; color:#58a6ff; }
-QPushButton#btn-settings    { background:transparent; color:#8b949e; border:2px solid #30363d; border-radius:10px; font-size:16px; padding:6px 12px; }
+QPushButton#btn-settings    { background:transparent; color:#adb1b8; border:1px solid #30363d; border-radius:8px; font-size:16px; padding:6px 12px; }
 QPushButton#btn-settings:hover { background:#30363d; color:#58a6ff; border-color:#58a6ff; }
-QDialog                     { background:#161b22; border:2px solid #30363d; border-radius:16px; }
-QLineEdit                   { background:#0d1117; border:2px solid #30363d; border-radius:10px; padding:10px 14px; color:#c9d1d9; font-size:13px; }
+QDialog                     { background:#161b22; border:1px solid #30363d; border-radius:16px; }
+QLineEdit                   { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:10px 14px; color:#e6edf3; font-size:13px; }
 QLineEdit:focus             { border-color:#58a6ff; background:#0d1117; }
-QLabel#status               { color:#8b949e; font-size:12px; }
+QLabel#status               { color:#adb1b8; font-size:12px; }
 QLabel#section-title        { color:#e6edf3; font-size:15px; font-weight:700; }
-QTabWidget::pane            { background:#161b22; border:2px solid #30363d; border-radius:12px; top:-1px; }
-QTabBar::tab                { background:#21262d; color:#8b949e; border:2px solid #30363d; border-bottom:none; border-radius:10px 10px 0px 0px; padding:10px 22px; margin-right:3px; font-weight:600; }
+QTabWidget::pane            { background:#161b22; border:1px solid #30363d; border-radius:12px; top:-1px; }
+QTabBar::tab                { background:#21262d; color:#adb1b8; border:1px solid #30363d; border-bottom:none; border-radius:8px 8px 0px 0px; padding:10px 22px; margin-right:3px; font-weight:600; }
 QTabBar::tab:selected       { background:#161b22; color:#58a6ff; border-bottom-color:#161b22; }
-QTabBar::tab:hover:!selected { background:#30363d; color:#c9d1d9; }
+QTabBar::tab:hover:!selected { background:#30363d; color:#e6edf3; }
 QCheckBox                   { spacing:10px; }
-QCheckBox::indicator        { width:20px;height:20px;border-radius:5px;border:2px solid #30363d;background:#0d1117; }
+QCheckBox::indicator        { width:20px;height:20px;border-radius:5px;border:1px solid #30363d;background:#0d1117; }
 QCheckBox::indicator:checked { background:#58a6ff;border-color:#58a6ff; }
-QToolTip                    { background:#161b22; color:#c9d1d9; border:1px solid #30363d; border-radius:6px; padding:6px 10px; font-size:12px; }
+QToolTip                    { background:#161b22; color:#e6edf3; border:1px solid #30363d; border-radius:6px; padding:6px 10px; font-size:12px; }
+QListWidget#nav             { background:#0d1117; border:none; border-right:1px solid #21262d; outline:none; }
+QListWidget#nav::item       { padding:12px 16px; color:#adb1b8; border:none; }
+QListWidget#nav::item:selected { background:#161b22; color:#58a6ff; border-left:3px solid #58a6ff; }
+QListWidget#nav::item:hover { background:#161b22; color:#e6edf3; }
+QRadioButton                { spacing:8px; color:#e6edf3; font-size:13px; }
+QRadioButton::indicator     { width:18px; height:18px; border-radius:9px; border:2px solid #30363d; background:#0d1117; }
+QRadioButton::indicator:checked { background:#58a6ff; border-color:#58a6ff; }
+QSlider::groove:horizontal   { background:#21262d; height:4px; border-radius:2px; }
+QSlider::handle:horizontal   { background:#58a6ff; width:16px; height:16px; margin:-6px 0; border-radius:8px; }
+QSlider::sub-page:horizontal { background:#58a6ff; border-radius:2px; }
 '''
 
 # ━━━━━━━━━━━━━━━━━━━━ 信号桥（线程→UI） ━━━━━━━━━━━━━━━━━━━━
@@ -744,7 +754,7 @@ class SettingsDialog(QDialog):
 
     def _fld(self, parent, label, value, placeholder="", password=False, tooltip=""):
         row = QHBoxLayout()
-        lbl = QLabel(label); lbl.setFixedWidth(80); lbl.setStyleSheet("color:#8b949e;font-size:12px;")
+        lbl = QLabel(label); lbl.setFixedWidth(80); lbl.setStyleSheet("color:#adb1b8;font-size:12px;")
         if tooltip: lbl.setToolTip(tooltip)
         ed = QLineEdit(value); ed.setPlaceholderText(placeholder)
         if password: ed.setEchoMode(QLineEdit.Password)
@@ -818,7 +828,7 @@ class SettingsDialog(QDialog):
         self.tr_extra = self._fld(cl,"额外参数", _tr_cfg(self.cfg)["extra_body"],'{"temperature":0.3}')
         cl.addSpacing(4); tr = QHBoxLayout(); tr.addStretch()
         tb = QPushButton("🔍 测试连接"); tb.setObjectName("btn-tts")
-        self.tr_test = QLabel(""); self.tr_test.setStyleSheet("color:#484f58;font-size:11px;")
+        self.tr_test = QLabel(""); self.tr_test.setStyleSheet("color:#6e7681;font-size:11px;")
         tb.clicked.connect(self._test_translate)
         tr.addWidget(tb); tr.addWidget(self.tr_test); tr.addStretch(); cl.addLayout(tr)
         l.addWidget(self.tr_cloud_panel)
@@ -859,7 +869,7 @@ class SettingsDialog(QDialog):
         self.tts_voice = self._fld(cl,"音色",     _tts_cfg(self.cfg)["voice"], "longanyang / longxiaochun ...")
         cl.addSpacing(4); tr2 = QHBoxLayout(); tr2.addStretch()
         tb2 = QPushButton("🔊 试听"); tb2.setObjectName("btn-tts")
-        self.tts_test = QLabel(""); self.tts_test.setStyleSheet("color:#484f58;font-size:11px;")
+        self.tts_test = QLabel(""); self.tts_test.setStyleSheet("color:#6e7681;font-size:11px;")
         tb2.clicked.connect(self._test_tts)
         tr2.addWidget(tb2); tr2.addWidget(self.tts_test); tr2.addStretch(); cl.addLayout(tr2)
         l.addWidget(self.tts_cloud_panel)
@@ -1065,7 +1075,7 @@ class MainWindow(QMainWindow):
         h.addStretch()
         self.status = QLabel("就绪", objectName="status"); h.addWidget(self.status)
         h.addSpacing(12)
-        hint = QLabel("Ctrl+Q 翻译  ·  Ctrl+E 朗读", styleSheet="color:#484f58;font-size:11px;")
+        hint = QLabel("Ctrl+Q 翻译  ·  Ctrl+E 朗读", styleSheet="color:#6e7681;font-size:11px;")
         h.addWidget(hint)
         h.addSpacing(8)
         sb = QPushButton("⚙"); sb.setObjectName("btn-settings"); sb.clicked.connect(self._settings); h.addWidget(sb)
@@ -1089,7 +1099,7 @@ class MainWindow(QMainWindow):
         self.input_edit.textChanged.connect(lambda: self._debounce.start())
         il.addWidget(self.input_edit)
         ib = QHBoxLayout(); ib.addStretch()
-        self.cc = QLabel("0 字符", styleSheet="color:#484f58;font-size:11px;"); ib.addWidget(self.cc); il.addLayout(ib)
+        self.cc = QLabel("0 字符", styleSheet="color:#6e7681;font-size:11px;"); ib.addWidget(self.cc); il.addLayout(ib)
         m.addWidget(ic,2)
 
         # 按钮
