@@ -15,6 +15,14 @@ from PyQt5.QtWidgets import *
 
 from config import load_config, save_config
 
+def _tr_cfg(cfg):
+    """快捷取翻译云端配置"""
+    return cfg["translate"]["cloud"]
+
+def _tts_cfg(cfg):
+    """快捷取 TTS 云端配置"""
+    return cfg["tts"]["cloud"]
+
 APP_NAME = "qclawTranslate"
 VERSION  = "1.5.2"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -174,9 +182,9 @@ def ai_translate(cfg, text, src_lang, tgt_lang, on_chunk=None):
     if not text or not text.strip():
         return {"success":False,"error":"文本为空"}
 
-    url     = cfg.get("translate_api_url","").strip()
-    api_key = cfg.get("translate_api_key","").strip()
-    model   = cfg.get("translate_model","qwen-plus").strip()
+    url     = _tr_cfg(cfg)["api_url"].strip()
+    api_key = _tr_cfg(cfg)["api_key"].strip()
+    model   = _tr_cfg(cfg)["model"].strip()
 
     if url and api_key:
         # OpenAI 兼容模式
@@ -193,7 +201,7 @@ def ai_translate(cfg, text, src_lang, tgt_lang, on_chunk=None):
             {"role":"user","content":text},
         ],"temperature":0.3,"max_tokens":max(4096,len(text)*4),"stream":True}
 
-        extra = cfg.get("translate_extra_body","").strip()
+        extra = _tr_cfg(cfg)["extra_body"].strip()
         if extra:
             try: body.update(json.loads(extra))
             except: pass
@@ -288,10 +296,10 @@ def tts_synthesize(cfg, text, lang_hint=None):
     CosyVoice WebSocket 流式 TTS。
     返回 (ok, bytes_or_err) — bytes 直接是 MP3 二进制。
     """
-    api_key = cfg.get("tts_api_key", "").strip()
-    ws_url  = cfg.get("tts_ws_url", "").strip()
-    model   = cfg.get("tts_model", "cosyvoice-v3-flash").strip()
-    voice   = cfg.get("tts_voice", "longanyang").strip()
+    api_key = _tts_cfg(cfg)["api_key"].strip()
+    ws_url  = _tts_cfg(cfg)["ws_url"].strip()
+    model   = _tts_cfg(cfg)["model"].strip()
+    voice   = _tts_cfg(cfg)["voice"].strip()
 
     if not api_key or not ws_url:
         return False, "请先配置 TTS WebSocket 地址和 Key"
@@ -754,11 +762,11 @@ class SettingsDialog(QDialog):
         # ── Tab 翻译 ──
         t1 = QWidget(); t1l = QVBoxLayout(t1); t1l.setSpacing(10); t1l.setContentsMargins(16,16,16,16)
         t1l.addWidget(QLabel("翻译引擎 — OpenAI /chat/completions 兼容", objectName="section-title"))
-        self.tr_url   = self._fld(t1l,"API 地址", self.cfg.get("translate_api_url",""),
+        self.tr_url   = self._fld(t1l,"API 地址", _tr_cfg(self.cfg)["api_url"],
                                    "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions")
-        self.tr_key   = self._fld(t1l,"API Key",  self.cfg.get("translate_api_key",""), "sk-xx", password=True)
-        self.tr_model = self._fld(t1l,"模型名",   self.cfg.get("translate_model","qwen-plus"), "qwen-plus / qwen-turbo ...")
-        self.tr_extra = self._fld(t1l,"额外参数", self.cfg.get("translate_extra_body",""),'{"temperature":0.3}')
+        self.tr_key   = self._fld(t1l,"API Key",  _tr_cfg(self.cfg)["api_key"], "sk-xx", password=True)
+        self.tr_model = self._fld(t1l,"模型名",   _tr_cfg(self.cfg)["model"], "qwen-plus / qwen-turbo ...")
+        self.tr_extra = self._fld(t1l,"额外参数", _tr_cfg(self.cfg)["extra_body"],'{"temperature":0.3}')
         t1l.addSpacing(4); tr = QHBoxLayout(); tr.addStretch()
         tb = QPushButton("🔍 测试连接"); tb.setObjectName("btn-tts")
         self.tr_test = QLabel(""); self.tr_test.setStyleSheet("color:#484f58;font-size:11px;")
@@ -770,11 +778,11 @@ class SettingsDialog(QDialog):
         # ── Tab TTS (CosyVoice WebSocket) ──
         t2 = QWidget(); t2l = QVBoxLayout(t2); t2l.setSpacing(10); t2l.setContentsMargins(16,16,16,16)
         t2l.addWidget(QLabel("TTS 引擎 — CosyVoice WebSocket 流式", objectName="section-title"))
-        self.tts_ws    = self._fld(t2l,"WS 地址",  self.cfg.get("tts_ws_url",""),
+        self.tts_ws    = self._fld(t2l,"WS 地址",  _tts_cfg(self.cfg)["ws_url"],
                                     "wss://ws-xxx.cn-beijing.maas.aliyuncs.com/api-ws/v1/inference")
-        self.tts_key   = self._fld(t2l,"API Key",  self.cfg.get("tts_api_key",""), "sk-xx", password=True)
-        self.tts_model = self._fld(t2l,"TTS 模型", self.cfg.get("tts_model","cosyvoice-v3-flash"), "cosyvoice-v3-flash")
-        self.tts_voice = self._fld(t2l,"音色",     self.cfg.get("tts_voice","longanyang"), "longanyang / longxiaochun ...")
+        self.tts_key   = self._fld(t2l,"API Key",  _tts_cfg(self.cfg)["api_key"], "sk-xx", password=True)
+        self.tts_model = self._fld(t2l,"TTS 模型", _tts_cfg(self.cfg)["model"], "cosyvoice-v3-flash")
+        self.tts_voice = self._fld(t2l,"音色",     _tts_cfg(self.cfg)["voice"], "longanyang / longxiaochun ...")
         t2l.addSpacing(4); tr2 = QHBoxLayout(); tr2.addStretch()
         tb2 = QPushButton("🔊 试听"); tb2.setObjectName("btn-tts")
         self.tts_test = QLabel(""); self.tts_test.setStyleSheet("color:#484f58;font-size:11px;")
@@ -787,7 +795,7 @@ class SettingsDialog(QDialog):
         # 通用
         lay.addSpacing(8); br = QHBoxLayout()
         br.addWidget(QLabel("开机自启")); self.boot = QCheckBox()
-        self.boot.setChecked(self.cfg.get("start_on_boot",False)); br.addStretch(); br.addWidget(self.boot)
+        self.boot.setChecked(self.cfg["general"]["start_on_boot"]); br.addStretch(); br.addWidget(self.boot)
         lay.addLayout(br)
 
         lay.addSpacing(4); bl = QHBoxLayout(); bl.addStretch()
@@ -799,26 +807,26 @@ class SettingsDialog(QDialog):
 
     def _save(self):
         c = self.cfg
-        c["translate_api_url"]  = self.tr_url.text().strip()
-        c["translate_api_key"]  = self.tr_key.text().strip()
-        c["translate_model"]    = self.tr_model.text().strip()
-        c["translate_extra_body"] = self.tr_extra.text().strip()
-        c["tts_ws_url"]        = self.tts_ws.text().strip()
-        c["tts_api_key"]        = self.tts_key.text().strip()
-        c["tts_model"]          = self.tts_model.text().strip()
-        c["tts_voice"]          = self.tts_voice.text().strip()
-        c["start_on_boot"]      = self.boot.isChecked()
-        save_config(c); _toggle_startup(c["start_on_boot"])
+        _tr_cfg(c)["api_url"]    = self.tr_url.text().strip()
+        _tr_cfg(c)["api_key"]    = self.tr_key.text().strip()
+        _tr_cfg(c)["model"]     = self.tr_model.text().strip()
+        _tr_cfg(c)["extra_body"] = self.tr_extra.text().strip()
+        _tts_cfg(c)["ws_url"]   = self.tts_ws.text().strip()
+        _tts_cfg(c)["api_key"]   = self.tts_key.text().strip()
+        _tts_cfg(c)["model"]    = self.tts_model.text().strip()
+        _tts_cfg(c)["voice"]    = self.tts_voice.text().strip()
+        c["general"]["start_on_boot"] = self.boot.isChecked()
+        save_config(c); _toggle_startup(c["general"]["start_on_boot"])
         self.accept()
 
     def _test_translate(self):
-        cfg = {
-            "translate_api_url":self.tr_url.text().strip(),
-            "translate_api_key":self.tr_key.text().strip(),
-            "translate_model":self.tr_model.text().strip(),
-            "translate_extra_body":self.tr_extra.text().strip(),
-        }
-        if not cfg["translate_api_url"] or not cfg["translate_api_key"]:
+        cfg = {"translate": {"cloud": {
+            "api_url":self.tr_url.text().strip(),
+            "api_key":self.tr_key.text().strip(),
+            "model":self.tr_model.text().strip(),
+            "extra_body":self.tr_extra.text().strip(),
+        }}}
+        if not _tr_cfg(cfg)["api_url"] or not _tr_cfg(cfg)["api_key"]:
             self.tr_test.setText("❌ 请填写地址和Key"); self.tr_test.setStyleSheet("color:#f85149;font-size:11px;"); return
         self.tr_test.setText("⏳ 测试中…"); self.tr_test.setStyleSheet("color:#d29922;font-size:11px;")
 
@@ -843,13 +851,13 @@ class SettingsDialog(QDialog):
             self.tr_test.setText(f"❌ {str(r.get('error',''))[:80]}"); self.tr_test.setStyleSheet("color:#f85149;font-size:11px;")
 
     def _test_tts(self):
-        cfg = {
-            "tts_ws_url":self.tts_ws.text().strip(),
-            "tts_api_key":self.tts_key.text().strip(),
-            "tts_model":self.tts_model.text().strip(),
-            "tts_voice":self.tts_voice.text().strip(),
-        }
-        if not cfg["tts_ws_url"] or not cfg["tts_api_key"]:
+        cfg = {"tts": {"cloud": {
+            "ws_url":self.tts_ws.text().strip(),
+            "api_key":self.tts_key.text().strip(),
+            "model":self.tts_model.text().strip(),
+            "voice":self.tts_voice.text().strip(),
+        }}}
+        if not _tts_cfg(cfg)["ws_url"] or not _tts_cfg(cfg)["api_key"]:
             self.tts_test.setText("❌ 请填写地址和Key"); self.tts_test.setStyleSheet("color:#f85149;font-size:11px;"); return
         self.tts_test.setText("⏳ 合成中…"); self.tts_test.setStyleSheet("color:#d29922;font-size:11px;")
 
@@ -1150,8 +1158,8 @@ class MainWindow(QMainWindow):
         text = text.strip()
         if not text:
             return
-        api_key = self.cfg.get("tts_api_key","").strip()
-        ws_url  = self.cfg.get("tts_ws_url","").strip()
+        api_key = _tts_cfg(self.cfg)["api_key"].strip()
+        ws_url  = _tts_cfg(self.cfg)["ws_url"].strip()
         if not api_key or not ws_url:
             QMessageBox.warning(self,"提示","请先在 ⚙ 设置中配置 TTS 引擎\n（WebSocket 地址 + Key + 模型名）")
             return
