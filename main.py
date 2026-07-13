@@ -737,7 +737,8 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setMinimumSize(540, 420)
+        self.setMinimumSize(680, 520)
+        self.resize(720, 560)
         self.cfg = load_config()
         self._build()
 
@@ -753,69 +754,216 @@ class SettingsDialog(QDialog):
     def _build(self):
         outer = QVBoxLayout(self); outer.setContentsMargins(0,0,0,0)
         card = QFrame(objectName="card"); card.setStyleSheet("padding:20px;")
-        lay = QVBoxLayout(card); lay.setSpacing(6)
+        lay = QVBoxLayout(card); lay.setSpacing(0); lay.setContentsMargins(0,0,0,0)
 
-        lay.addWidget(QLabel("⚙️  引擎设置", styleSheet="font-size:18px;font-weight:bold;color:#e6edf3;padding-bottom:12px;"))
+        # 标题栏
+        title = QLabel("⚙️  设置"); title.setStyleSheet("font-size:18px;font-weight:bold;color:#e6edf3;padding:0 20px 16px 20px;")
+        lay.addWidget(title)
 
-        tabs = QTabWidget()
+        # 主体：左侧导航 + 右侧面板
+        body = QHBoxLayout(); body.setSpacing(0); body.setContentsMargins(0,0,0,0)
 
-        # ── Tab 翻译 ──
-        t1 = QWidget(); t1l = QVBoxLayout(t1); t1l.setSpacing(10); t1l.setContentsMargins(16,16,16,16)
-        t1l.addWidget(QLabel("翻译引擎 — OpenAI /chat/completions 兼容", objectName="section-title"))
-        self.tr_url   = self._fld(t1l,"API 地址", _tr_cfg(self.cfg)["api_url"],
-                                   "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions")
-        self.tr_key   = self._fld(t1l,"API Key",  _tr_cfg(self.cfg)["api_key"], "sk-xx", password=True)
-        self.tr_model = self._fld(t1l,"模型名",   _tr_cfg(self.cfg)["model"], "qwen-plus / qwen-turbo ...")
-        self.tr_extra = self._fld(t1l,"额外参数", _tr_cfg(self.cfg)["extra_body"],'{"temperature":0.3}')
-        t1l.addSpacing(4); tr = QHBoxLayout(); tr.addStretch()
-        tb = QPushButton("🔍 测试连接"); tb.setObjectName("btn-tts")
-        self.tr_test = QLabel(""); self.tr_test.setStyleSheet("color:#484f58;font-size:11px;")
-        tb.clicked.connect(self._test_translate)
-        tr.addWidget(tb); tr.addWidget(self.tr_test); tr.addStretch(); t1l.addLayout(tr)
-        t1l.addStretch(); tabs.addTab(t1,"📝 翻译")
+        self.nav = QListWidget(objectName="nav")
+        self.nav.setFixedWidth(160)
+        self.nav.addItem("📝 翻译引擎")
+        self.nav.addItem("🔊 TTS 引擎")
+        self.nav.addItem("🎤 发音分析")
+        self.nav.addItem("💬 实时字幕")
+        self.nav.addItem("⚙️ 通用设置")
+        self.nav.setCurrentRow(0)
+        self.nav.currentRowChanged.connect(self._on_nav_changed)
+        body.addWidget(self.nav)
 
-        # ── Tab TTS ──
-        # ── Tab TTS (CosyVoice WebSocket) ──
-        t2 = QWidget(); t2l = QVBoxLayout(t2); t2l.setSpacing(10); t2l.setContentsMargins(16,16,16,16)
-        t2l.addWidget(QLabel("TTS 引擎 — CosyVoice WebSocket 流式", objectName="section-title"))
-        self.tts_ws    = self._fld(t2l,"WS 地址",  _tts_cfg(self.cfg)["ws_url"],
-                                    "wss://ws-xxx.cn-beijing.maas.aliyuncs.com/api-ws/v1/inference")
-        self.tts_key   = self._fld(t2l,"API Key",  _tts_cfg(self.cfg)["api_key"], "sk-xx", password=True)
-        self.tts_model = self._fld(t2l,"TTS 模型", _tts_cfg(self.cfg)["model"], "cosyvoice-v3-flash")
-        self.tts_voice = self._fld(t2l,"音色",     _tts_cfg(self.cfg)["voice"], "longanyang / longxiaochun ...")
-        t2l.addSpacing(4); tr2 = QHBoxLayout(); tr2.addStretch()
-        tb2 = QPushButton("🔊 试听"); tb2.setObjectName("btn-tts")
-        self.tts_test = QLabel(""); self.tts_test.setStyleSheet("color:#484f58;font-size:11px;")
-        tb2.clicked.connect(self._test_tts)
-        tr2.addWidget(tb2); tr2.addWidget(self.tts_test); tr2.addStretch(); t2l.addLayout(tr2)
-        t2l.addStretch(); tabs.addTab(t2,"🔊 TTS")
+        self.stack = QStackedWidget()
+        self.stack.addWidget(self._build_translate_page())
+        self.stack.addWidget(self._build_tts_page())
+        self.stack.addWidget(self._build_pronunciation_page())
+        self.stack.addWidget(self._build_subtitle_page())
+        self.stack.addWidget(self._build_general_page())
+        body.addWidget(self.stack, 1)
 
-        lay.addWidget(tabs)
+        lay.addLayout(body, 1)
 
-        # 通用
-        lay.addSpacing(8); br = QHBoxLayout()
-        br.addWidget(QLabel("开机自启")); self.boot = QCheckBox()
-        self.boot.setChecked(self.cfg["general"]["start_on_boot"]); br.addStretch(); br.addWidget(self.boot)
-        lay.addLayout(br)
-
-        lay.addSpacing(4); bl = QHBoxLayout(); bl.addStretch()
+        # 底部按钮
+        lay.addSpacing(12)
+        bl = QHBoxLayout(); bl.setContentsMargins(0,0,20,20); bl.addStretch()
         c = QPushButton("取消"); c.setObjectName("btn-tts"); c.clicked.connect(self.reject)
         s = QPushButton("保存"); s.setObjectName("btn-primary"); s.clicked.connect(self._save)
         bl.addWidget(c); bl.addWidget(s); lay.addLayout(bl)
 
         outer.addWidget(card)
 
+    def _on_nav_changed(self, row):
+        self.stack.setCurrentIndex(row)
+
+    # ── 翻译引擎面板 ──
+    def _build_translate_page(self):
+        page = QWidget(); l = QVBoxLayout(page); l.setSpacing(12); l.setContentsMargins(20,20,20,20)
+        l.addWidget(QLabel("翻译引擎", objectName="section-title"))
+
+        # 云端/本地切换
+        engine_row = QHBoxLayout()
+        self.tr_engine_cloud = QRadioButton("云端"); self.tr_engine_cloud.setChecked(True)
+        self.tr_engine_local = QRadioButton("本地")
+        engine_row.addWidget(self.tr_engine_cloud); engine_row.addWidget(self.tr_engine_local)
+        engine_row.addStretch(); l.addLayout(engine_row)
+
+        # 云端面板
+        self.tr_cloud_panel = QWidget()
+        cl = QVBoxLayout(self.tr_cloud_panel); cl.setSpacing(8); cl.setContentsMargins(0,8,0,0)
+        self.tr_url   = self._fld(cl,"API 地址", _tr_cfg(self.cfg)["api_url"],
+                                   "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions")
+        self.tr_key   = self._fld(cl,"API Key",  _tr_cfg(self.cfg)["api_key"], "sk-xx", password=True)
+        self.tr_model = self._fld(cl,"模型名",   _tr_cfg(self.cfg)["model"], "qwen-plus / qwen-turbo ...")
+        self.tr_extra = self._fld(cl,"额外参数", _tr_cfg(self.cfg)["extra_body"],'{"temperature":0.3}')
+        cl.addSpacing(4); tr = QHBoxLayout(); tr.addStretch()
+        tb = QPushButton("🔍 测试连接"); tb.setObjectName("btn-tts")
+        self.tr_test = QLabel(""); self.tr_test.setStyleSheet("color:#484f58;font-size:11px;")
+        tb.clicked.connect(self._test_translate)
+        tr.addWidget(tb); tr.addWidget(self.tr_test); tr.addStretch(); cl.addLayout(tr)
+        l.addWidget(self.tr_cloud_panel)
+
+        # 本地面板（预留禁用）
+        self.tr_local_panel = QWidget(); self.tr_local_panel.setEnabled(False)
+        ll = QVBoxLayout(self.tr_local_panel); ll.setSpacing(8); ll.setContentsMargins(0,8,0,0)
+        ll.addWidget(QLabel("本地翻译引擎即将支持", styleSheet="color:#6e7681;font-size:13px;"))
+        l.addWidget(self.tr_local_panel)
+
+        self.tr_engine_cloud.toggled.connect(self._on_tr_engine_changed)
+        l.addStretch()
+        return page
+
+    def _on_tr_engine_changed(self):
+        cloud = self.tr_engine_cloud.isChecked()
+        self.tr_cloud_panel.setVisible(cloud)
+        self.tr_local_panel.setVisible(not cloud)
+
+    # ── TTS 引擎面板 ──
+    def _build_tts_page(self):
+        page = QWidget(); l = QVBoxLayout(page); l.setSpacing(12); l.setContentsMargins(20,20,20,20)
+        l.addWidget(QLabel("TTS 引擎", objectName="section-title"))
+
+        engine_row = QHBoxLayout()
+        self.tts_engine_cloud = QRadioButton("云端"); self.tts_engine_cloud.setChecked(True)
+        self.tts_engine_local = QRadioButton("本地")
+        engine_row.addWidget(self.tts_engine_cloud); engine_row.addWidget(self.tts_engine_local)
+        engine_row.addStretch(); l.addLayout(engine_row)
+
+        # 云端面板
+        self.tts_cloud_panel = QWidget()
+        cl = QVBoxLayout(self.tts_cloud_panel); cl.setSpacing(8); cl.setContentsMargins(0,8,0,0)
+        self.tts_ws    = self._fld(cl,"WS 地址",  _tts_cfg(self.cfg)["ws_url"],
+                                    "wss://ws-xxx.cn-beijing.maas.aliyuncs.com/api-ws/v1/inference")
+        self.tts_key   = self._fld(cl,"API Key",  _tts_cfg(self.cfg)["api_key"], "sk-xx", password=True)
+        self.tts_model = self._fld(cl,"TTS 模型", _tts_cfg(self.cfg)["model"], "cosyvoice-v3-flash")
+        self.tts_voice = self._fld(cl,"音色",     _tts_cfg(self.cfg)["voice"], "longanyang / longxiaochun ...")
+        cl.addSpacing(4); tr2 = QHBoxLayout(); tr2.addStretch()
+        tb2 = QPushButton("🔊 试听"); tb2.setObjectName("btn-tts")
+        self.tts_test = QLabel(""); self.tts_test.setStyleSheet("color:#484f58;font-size:11px;")
+        tb2.clicked.connect(self._test_tts)
+        tr2.addWidget(tb2); tr2.addWidget(self.tts_test); tr2.addStretch(); cl.addLayout(tr2)
+        l.addWidget(self.tts_cloud_panel)
+
+        # 本地面板（预留禁用）
+        self.tts_local_panel = QWidget(); self.tts_local_panel.setEnabled(False)
+        ll = QVBoxLayout(self.tts_local_panel); ll.setSpacing(8); ll.setContentsMargins(0,8,0,0)
+        ll.addWidget(QLabel("本地 TTS 引擎即将支持 (edge-tts)", styleSheet="color:#6e7681;font-size:13px;"))
+        l.addWidget(self.tts_local_panel)
+
+        self.tts_engine_cloud.toggled.connect(self._on_tts_engine_changed)
+
+        # 播放设置
+        l.addSpacing(8)
+        l.addWidget(QLabel("播放设置", objectName="section-title"))
+        speed_row = QHBoxLayout(); speed_lbl = QLabel("语速"); speed_lbl.setFixedWidth(80); speed_lbl.setStyleSheet("color:#adb1b8;font-size:12px;")
+        self.tts_speed = QSlider(Qt.Horizontal); self.tts_speed.setMinimum(50); self.tts_speed.setMaximum(200); self.tts_speed.setValue(int(self.cfg["tts"]["playback"]["speed"]*100))
+        self.tts_speed_lbl = QLabel(f"{self.tts_speed.value()/100:.1f}x"); self.tts_speed_lbl.setFixedWidth(40)
+        self.tts_speed.valueChanged.connect(lambda v: self.tts_speed_lbl.setText(f"{v/100:.1f}x"))
+        speed_row.addWidget(speed_lbl); speed_row.addWidget(self.tts_speed, 1); speed_row.addWidget(self.tts_speed_lbl)
+        l.addLayout(speed_row)
+
+        cache_row = QHBoxLayout()
+        self.tts_cache = QCheckBox("启用本地缓存"); self.tts_cache.setChecked(self.cfg["tts"]["playback"]["cache_enabled"])
+        cache_row.addWidget(self.tts_cache); cache_row.addStretch(); l.addLayout(cache_row)
+
+        l.addStretch()
+        return page
+
+    def _on_tts_engine_changed(self):
+        cloud = self.tts_engine_cloud.isChecked()
+        self.tts_cloud_panel.setVisible(cloud)
+        self.tts_local_panel.setVisible(not cloud)
+
+    # ── 发音分析面板（Phase B 预留） ──
+    def _build_pronunciation_page(self):
+        page = QWidget(); page.setEnabled(False)
+        l = QVBoxLayout(page); l.setSpacing(12); l.setContentsMargins(20,20,20,20)
+        l.addWidget(QLabel("发音分析  🔒 即将推出", objectName="section-title"))
+        info = QLabel("预计支持：WhisperX + wav2vec2 音素级打分\n功能将在 Phase B 中实现")
+        info.setStyleSheet("color:#6e7681;font-size:13px;padding:40px 20px;")
+        l.addWidget(info); l.addStretch()
+        return page
+
+    # ── 实时字幕面板（Phase C 预留） ──
+    def _build_subtitle_page(self):
+        page = QWidget(); page.setEnabled(False)
+        l = QVBoxLayout(page); l.setSpacing(12); l.setContentsMargins(20,20,20,20)
+        l.addWidget(QLabel("实时字幕  🔒 即将推出", objectName="section-title"))
+        info = QLabel("预计支持：sherpa-onnx 流式 ASR + VAD\n功能将在 Phase C 中实现")
+        info.setStyleSheet("color:#6e7681;font-size:13px;padding:40px 20px;")
+        l.addWidget(info); l.addStretch()
+        return page
+
+    # ── 通用设置面板 ──
+    def _build_general_page(self):
+        page = QWidget(); l = QVBoxLayout(page); l.setSpacing(12); l.setContentsMargins(20,20,20,20)
+        l.addWidget(QLabel("通用设置", objectName="section-title"))
+
+        self.boot = QCheckBox("开机自启")
+        self.boot.setChecked(self.cfg["general"]["start_on_boot"])
+        l.addWidget(self.boot)
+
+        self.tray_min = QCheckBox("最小化到托盘")
+        self.tray_min.setChecked(self.cfg["general"]["tray_minimize"])
+        l.addWidget(self.tray_min)
+
+        l.addSpacing(8)
+        theme_row = QHBoxLayout(); theme_lbl = QLabel("主题"); theme_lbl.setFixedWidth(80); theme_lbl.setStyleSheet("color:#adb1b8;font-size:12px;")
+        self.theme_combo = QComboBox(); self.theme_combo.addItem("深色", "dark"); self.theme_combo.addItem("浅色", "light")
+        self.theme_combo.setCurrentIndex(self.theme_combo.findData(self.cfg["general"].get("theme", "dark")))
+        theme_row.addWidget(theme_lbl); theme_row.addWidget(self.theme_combo, 1); theme_row.addStretch()
+        l.addLayout(theme_row)
+
+        lang_row = QHBoxLayout(); lang_lbl = QLabel("界面语言"); lang_lbl.setFixedWidth(80); lang_lbl.setStyleSheet("color:#adb1b8;font-size:12px;")
+        self.lang_combo = QComboBox(); self.lang_combo.addItem("简体中文", "zh-CN"); self.lang_combo.addItem("English", "en-US")
+        self.lang_combo.setCurrentIndex(self.lang_combo.findData(self.cfg["general"].get("language", "zh-CN")))
+        lang_row.addWidget(lang_lbl); lang_row.addWidget(self.lang_combo, 1); lang_row.addStretch()
+        l.addLayout(lang_row)
+
+        l.addStretch()
+        return page
+
     def _save(self):
         c = self.cfg
+        # 翻译
+        c["translate"]["engine"] = "cloud" if self.tr_engine_cloud.isChecked() else "local"
         _tr_cfg(c)["api_url"]    = self.tr_url.text().strip()
         _tr_cfg(c)["api_key"]    = self.tr_key.text().strip()
         _tr_cfg(c)["model"]     = self.tr_model.text().strip()
         _tr_cfg(c)["extra_body"] = self.tr_extra.text().strip()
+        # TTS
+        c["tts"]["engine"] = "cloud" if self.tts_engine_cloud.isChecked() else "local"
         _tts_cfg(c)["ws_url"]   = self.tts_ws.text().strip()
         _tts_cfg(c)["api_key"]   = self.tts_key.text().strip()
         _tts_cfg(c)["model"]    = self.tts_model.text().strip()
         _tts_cfg(c)["voice"]    = self.tts_voice.text().strip()
+        c["tts"]["playback"]["speed"] = self.tts_speed.value() / 100.0
+        c["tts"]["playback"]["cache_enabled"] = self.tts_cache.isChecked()
+        # 通用
         c["general"]["start_on_boot"] = self.boot.isChecked()
+        c["general"]["tray_minimize"] = self.tray_min.isChecked()
+        c["general"]["theme"] = self.theme_combo.currentData()
+        c["general"]["language"] = self.lang_combo.currentData()
         save_config(c); _toggle_startup(c["general"]["start_on_boot"])
         self.accept()
 
