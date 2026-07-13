@@ -45,7 +45,7 @@ QSS = r'''
 QMainWindow                 { background:#0d1117; }
 QWidget                     { font-family:"Segoe UI","Microsoft YaHei UI"; font-size:13px; color:#e6edf3; }
 QFrame#card                 { background:#161b22; border:1px solid #21262d; border-radius:12px; }
-QTextEdit                   { background:#0d1117; border:1px solid #21262d; border-radius:10px; padding:14px 16px; color:#e6edf3; font-size:14px; }
+QTextEdit                   { background:#0d1117; border:1px solid #21262d; border-radius:10px; padding:16px 18px; color:#e6edf3; font-size:14px; }
 QTextEdit:focus             { border:1px solid #58a6ff; background:#0d1117; }
 QTextEdit[readOnly="true"]  { background:#0d1117; }
 QScrollBar:vertical         { background:transparent; width:8px; margin:4px 0; }
@@ -56,7 +56,7 @@ QScrollBar:horizontal       { background:transparent; height:8px; }
 QScrollBar::handle:horizontal { background:#30363d; border-radius:4px; min-width:36px; }
 QScrollBar::handle:horizontal:hover { background:#58a6ff; }
 QScrollBar::add-line:horizontal,QScrollBar::sub-line:horizontal { width:0px; }
-QComboBox                   { background:#21262d; border:1px solid #30363d; border-radius:8px; padding:8px 14px; color:#e6edf3; font-size:13px; min-height:22px; }
+QComboBox                   { background:#21262d; border:1px solid #30363d; border-radius:8px; padding:10px 16px; color:#e6edf3; font-size:13px; min-height:22px; }
 QComboBox:hover             { border-color:#58a6ff; }
 QComboBox:focus             { border-color:#58a6ff; background:#161b22; }
 QComboBox::drop-down        { border:none; padding-right:10px; width:24px; }
@@ -77,7 +77,7 @@ QDialog                     { background:#161b22; border:1px solid #30363d; bord
 QLineEdit                   { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:10px 14px; color:#e6edf3; font-size:13px; }
 QLineEdit:focus             { border-color:#58a6ff; background:#0d1117; }
 QLabel#status               { color:#adb1b8; font-size:12px; }
-QLabel#section-title        { color:#e6edf3; font-size:15px; font-weight:700; }
+QLabel#section-title        { color:#e6edf3; font-size:15px; font-weight:700; padding-bottom:4px; }
 QTabWidget::pane            { background:#161b22; border:1px solid #30363d; border-radius:12px; top:-1px; }
 QTabBar::tab                { background:#21262d; color:#adb1b8; border:1px solid #30363d; border-bottom:none; border-radius:8px 8px 0px 0px; padding:10px 22px; margin-right:3px; font-weight:600; }
 QTabBar::tab:selected       { background:#161b22; color:#58a6ff; border-bottom-color:#161b22; }
@@ -87,7 +87,7 @@ QCheckBox::indicator        { width:20px;height:20px;border-radius:5px;border:1p
 QCheckBox::indicator:checked { background:#58a6ff;border-color:#58a6ff; }
 QToolTip                    { background:#161b22; color:#e6edf3; border:1px solid #30363d; border-radius:6px; padding:6px 10px; font-size:12px; }
 QListWidget#nav             { background:#0d1117; border:none; border-right:1px solid #21262d; outline:none; }
-QListWidget#nav::item       { padding:12px 16px; color:#adb1b8; border:none; }
+QListWidget#nav::item       { padding:14px 20px; color:#adb1b8; border:none; }
 QListWidget#nav::item:selected { background:#161b22; color:#58a6ff; border-left:3px solid #58a6ff; }
 QListWidget#nav::item:hover { background:#161b22; color:#e6edf3; }
 QRadioButton                { spacing:8px; color:#e6edf3; font-size:13px; }
@@ -754,7 +754,7 @@ class SettingsDialog(QDialog):
 
     def _fld(self, parent, label, value, placeholder="", password=False, tooltip=""):
         row = QHBoxLayout()
-        lbl = QLabel(label); lbl.setFixedWidth(80); lbl.setStyleSheet("color:#adb1b8;font-size:12px;")
+        lbl = QLabel(label); lbl.setFixedWidth(90); lbl.setStyleSheet("color:#adb1b8;font-size:12px;")
         if tooltip: lbl.setToolTip(tooltip)
         ed = QLineEdit(value); ed.setPlaceholderText(placeholder)
         if password: ed.setEchoMode(QLineEdit.Password)
@@ -763,18 +763,18 @@ class SettingsDialog(QDialog):
 
     def _build(self):
         outer = QVBoxLayout(self); outer.setContentsMargins(0,0,0,0)
-        card = QFrame(objectName="card"); card.setStyleSheet("padding:20px;")
-        lay = QVBoxLayout(card); lay.setSpacing(0); lay.setContentsMargins(0,0,0,0)
+        card = QFrame(objectName="card"); card.setStyleSheet("padding:0;")
+        lay = QVBoxLayout(card); lay.setSpacing(0); lay.setContentsMargins(24,24,24,24)
 
         # 标题栏
-        title = QLabel("⚙️  设置"); title.setStyleSheet("font-size:18px;font-weight:bold;color:#e6edf3;padding:0 20px 16px 20px;")
+        title = QLabel("⚙️  设置"); title.setStyleSheet("font-size:20px;font-weight:bold;color:#e6edf3;padding:0 0 20px 0;")
         lay.addWidget(title)
 
         # 主体：左侧导航 + 右侧面板
         body = QHBoxLayout(); body.setSpacing(0); body.setContentsMargins(0,0,0,0)
 
         self.nav = QListWidget(objectName="nav")
-        self.nav.setFixedWidth(160)
+        self.nav.setFixedWidth(170)
         self.nav.addItem("📝 翻译引擎")
         self.nav.addItem("🔊 TTS 引擎")
         self.nav.addItem("🎤 发音分析")
@@ -795,11 +795,11 @@ class SettingsDialog(QDialog):
         lay.addLayout(body, 1)
 
         # 底部按钮
-        lay.addSpacing(12)
-        bl = QHBoxLayout(); bl.setContentsMargins(0,0,20,20); bl.addStretch()
+        lay.addSpacing(20)
+        bl = QHBoxLayout(); bl.setContentsMargins(0,0,0,0); bl.addStretch()
         c = QPushButton("取消"); c.setObjectName("btn-tts"); c.clicked.connect(self.reject)
         s = QPushButton("保存"); s.setObjectName("btn-primary"); s.clicked.connect(self._save)
-        bl.addWidget(c); bl.addWidget(s); lay.addLayout(bl)
+        bl.addWidget(c); bl.addSpacing(10); bl.addWidget(s); lay.addLayout(bl)
 
         outer.addWidget(card)
 
@@ -808,7 +808,7 @@ class SettingsDialog(QDialog):
 
     # ── 翻译引擎面板 ──
     def _build_translate_page(self):
-        page = QWidget(); l = QVBoxLayout(page); l.setSpacing(12); l.setContentsMargins(20,20,20,20)
+        page = QWidget(); l = QVBoxLayout(page); l.setSpacing(16); l.setContentsMargins(28,24,28,24)
         l.addWidget(QLabel("翻译引擎", objectName="section-title"))
 
         # 云端/本地切换
@@ -820,7 +820,7 @@ class SettingsDialog(QDialog):
 
         # 云端面板
         self.tr_cloud_panel = QWidget()
-        cl = QVBoxLayout(self.tr_cloud_panel); cl.setSpacing(8); cl.setContentsMargins(0,8,0,0)
+        cl = QVBoxLayout(self.tr_cloud_panel); cl.setSpacing(14); cl.setContentsMargins(0,12,0,0)
         self.tr_url   = self._fld(cl,"API 地址", _tr_cfg(self.cfg)["api_url"],
                                    "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions")
         self.tr_key   = self._fld(cl,"API Key",  _tr_cfg(self.cfg)["api_key"], "sk-xx", password=True)
@@ -835,7 +835,7 @@ class SettingsDialog(QDialog):
 
         # 本地面板（预留禁用）
         self.tr_local_panel = QWidget(); self.tr_local_panel.setEnabled(False)
-        ll = QVBoxLayout(self.tr_local_panel); ll.setSpacing(8); ll.setContentsMargins(0,8,0,0)
+        ll = QVBoxLayout(self.tr_local_panel); ll.setSpacing(14); ll.setContentsMargins(0,12,0,0)
         ll.addWidget(QLabel("本地翻译引擎即将支持", styleSheet="color:#6e7681;font-size:13px;"))
         l.addWidget(self.tr_local_panel)
 
@@ -850,7 +850,7 @@ class SettingsDialog(QDialog):
 
     # ── TTS 引擎面板 ──
     def _build_tts_page(self):
-        page = QWidget(); l = QVBoxLayout(page); l.setSpacing(12); l.setContentsMargins(20,20,20,20)
+        page = QWidget(); l = QVBoxLayout(page); l.setSpacing(16); l.setContentsMargins(28,24,28,24)
         l.addWidget(QLabel("TTS 引擎", objectName="section-title"))
 
         engine_row = QHBoxLayout()
@@ -861,7 +861,7 @@ class SettingsDialog(QDialog):
 
         # 云端面板
         self.tts_cloud_panel = QWidget()
-        cl = QVBoxLayout(self.tts_cloud_panel); cl.setSpacing(8); cl.setContentsMargins(0,8,0,0)
+        cl = QVBoxLayout(self.tts_cloud_panel); cl.setSpacing(14); cl.setContentsMargins(0,12,0,0)
         self.tts_ws    = self._fld(cl,"WS 地址",  _tts_cfg(self.cfg)["ws_url"],
                                     "wss://ws-xxx.cn-beijing.maas.aliyuncs.com/api-ws/v1/inference")
         self.tts_key   = self._fld(cl,"API Key",  _tts_cfg(self.cfg)["api_key"], "sk-xx", password=True)
@@ -876,7 +876,7 @@ class SettingsDialog(QDialog):
 
         # 本地面板（预留禁用）
         self.tts_local_panel = QWidget(); self.tts_local_panel.setEnabled(False)
-        ll = QVBoxLayout(self.tts_local_panel); ll.setSpacing(8); ll.setContentsMargins(0,8,0,0)
+        ll = QVBoxLayout(self.tts_local_panel); ll.setSpacing(14); ll.setContentsMargins(0,12,0,0)
         ll.addWidget(QLabel("本地 TTS 引擎即将支持 (edge-tts)", styleSheet="color:#6e7681;font-size:13px;"))
         l.addWidget(self.tts_local_panel)
 
@@ -885,7 +885,7 @@ class SettingsDialog(QDialog):
         # 播放设置
         l.addSpacing(8)
         l.addWidget(QLabel("播放设置", objectName="section-title"))
-        speed_row = QHBoxLayout(); speed_lbl = QLabel("语速"); speed_lbl.setFixedWidth(80); speed_lbl.setStyleSheet("color:#adb1b8;font-size:12px;")
+        speed_row = QHBoxLayout(); speed_lbl = QLabel("语速"); speed_lbl.setFixedWidth(90); speed_lbl.setStyleSheet("color:#adb1b8;font-size:12px;")
         self.tts_speed = QSlider(Qt.Horizontal); self.tts_speed.setMinimum(50); self.tts_speed.setMaximum(200); self.tts_speed.setValue(int(self.cfg["tts"]["playback"]["speed"]*100))
         self.tts_speed_lbl = QLabel(f"{self.tts_speed.value()/100:.1f}x"); self.tts_speed_lbl.setFixedWidth(40)
         self.tts_speed.valueChanged.connect(lambda v: self.tts_speed_lbl.setText(f"{v/100:.1f}x"))
@@ -907,26 +907,26 @@ class SettingsDialog(QDialog):
     # ── 发音分析面板（Phase B 预留） ──
     def _build_pronunciation_page(self):
         page = QWidget(); page.setEnabled(False)
-        l = QVBoxLayout(page); l.setSpacing(12); l.setContentsMargins(20,20,20,20)
+        l = QVBoxLayout(page); l.setSpacing(16); l.setContentsMargins(28,24,28,24)
         l.addWidget(QLabel("发音分析  🔒 即将推出", objectName="section-title"))
         info = QLabel("预计支持：WhisperX + wav2vec2 音素级打分\n功能将在 Phase B 中实现")
-        info.setStyleSheet("color:#6e7681;font-size:13px;padding:40px 20px;")
+        info.setStyleSheet("color:#6e7681;font-size:13px;padding:48px 24px;")
         l.addWidget(info); l.addStretch()
         return page
 
     # ── 实时字幕面板（Phase C 预留） ──
     def _build_subtitle_page(self):
         page = QWidget(); page.setEnabled(False)
-        l = QVBoxLayout(page); l.setSpacing(12); l.setContentsMargins(20,20,20,20)
+        l = QVBoxLayout(page); l.setSpacing(16); l.setContentsMargins(28,24,28,24)
         l.addWidget(QLabel("实时字幕  🔒 即将推出", objectName="section-title"))
         info = QLabel("预计支持：sherpa-onnx 流式 ASR + VAD\n功能将在 Phase C 中实现")
-        info.setStyleSheet("color:#6e7681;font-size:13px;padding:40px 20px;")
+        info.setStyleSheet("color:#6e7681;font-size:13px;padding:48px 24px;")
         l.addWidget(info); l.addStretch()
         return page
 
     # ── 通用设置面板 ──
     def _build_general_page(self):
-        page = QWidget(); l = QVBoxLayout(page); l.setSpacing(12); l.setContentsMargins(20,20,20,20)
+        page = QWidget(); l = QVBoxLayout(page); l.setSpacing(16); l.setContentsMargins(28,24,28,24)
         l.addWidget(QLabel("通用设置", objectName="section-title"))
 
         self.boot = QCheckBox("开机自启")
@@ -937,14 +937,14 @@ class SettingsDialog(QDialog):
         self.tray_min.setChecked(self.cfg["general"]["tray_minimize"])
         l.addWidget(self.tray_min)
 
-        l.addSpacing(8)
-        theme_row = QHBoxLayout(); theme_lbl = QLabel("主题"); theme_lbl.setFixedWidth(80); theme_lbl.setStyleSheet("color:#adb1b8;font-size:12px;")
+        l.addSpacing(12)
+        theme_row = QHBoxLayout(); theme_lbl = QLabel("主题"); theme_lbl.setFixedWidth(90); theme_lbl.setStyleSheet("color:#adb1b8;font-size:12px;")
         self.theme_combo = QComboBox(); self.theme_combo.addItem("深色", "dark"); self.theme_combo.addItem("浅色", "light")
         self.theme_combo.setCurrentIndex(self.theme_combo.findData(self.cfg["general"].get("theme", "dark")))
         theme_row.addWidget(theme_lbl); theme_row.addWidget(self.theme_combo, 1); theme_row.addStretch()
         l.addLayout(theme_row)
 
-        lang_row = QHBoxLayout(); lang_lbl = QLabel("界面语言"); lang_lbl.setFixedWidth(80); lang_lbl.setStyleSheet("color:#adb1b8;font-size:12px;")
+        lang_row = QHBoxLayout(); lang_lbl = QLabel("界面语言"); lang_lbl.setFixedWidth(90); lang_lbl.setStyleSheet("color:#adb1b8;font-size:12px;")
         self.lang_combo = QComboBox(); self.lang_combo.addItem("简体中文", "zh-CN"); self.lang_combo.addItem("English", "en-US")
         self.lang_combo.setCurrentIndex(self.lang_combo.findData(self.cfg["general"].get("language", "zh-CN")))
         lang_row.addWidget(lang_lbl); lang_row.addWidget(self.lang_combo, 1); lang_row.addStretch()
@@ -1065,7 +1065,7 @@ class MainWindow(QMainWindow):
 
     def _setup_ui(self):
         cw = QWidget(); cw.setStyleSheet("background:#0d1117;"); self.setCentralWidget(cw)
-        m = QVBoxLayout(cw); m.setContentsMargins(16,12,16,16); m.setSpacing(10)
+        m = QVBoxLayout(cw); m.setContentsMargins(20,16,20,20); m.setSpacing(14)
 
         # 标题栏
         h = QHBoxLayout()
@@ -1093,9 +1093,9 @@ class MainWindow(QMainWindow):
         m.addLayout(lb)
 
         # 输入
-        ic = QFrame(objectName="card"); il = QVBoxLayout(ic); il.setContentsMargins(6,6,6,6)
+        ic = QFrame(objectName="card"); il = QVBoxLayout(ic); il.setContentsMargins(12,12,12,12)
         self.input_edit = QTextEdit(placeholderText="✍️ 输入文字，或选中后 Ctrl+Q 划词翻译…")
-        self.input_edit.setMinimumHeight(100)
+        self.input_edit.setMinimumHeight(110)
         self.input_edit.textChanged.connect(lambda: self._debounce.start())
         il.addWidget(self.input_edit)
         ib = QHBoxLayout(); ib.addStretch()
@@ -1117,9 +1117,9 @@ class MainWindow(QMainWindow):
         m.addLayout(ab)
 
         # 输出
-        oc = QFrame(objectName="card"); ol = QVBoxLayout(oc); ol.setContentsMargins(6,6,6,6)
+        oc = QFrame(objectName="card"); ol = QVBoxLayout(oc); ol.setContentsMargins(12,12,12,12)
         self.output_edit = QTextEdit(readOnly=True, placeholderText="📝 翻译结果将显示在这里…")
-        self.output_edit.setMinimumHeight(100); ol.addWidget(self.output_edit)
+        self.output_edit.setMinimumHeight(110); ol.addWidget(self.output_edit)
         m.addWidget(oc,3)
 
         self.input_edit.textChanged.connect(lambda: self.cc.setText(f"{len(self.input_edit.toPlainText())} 字符"))
