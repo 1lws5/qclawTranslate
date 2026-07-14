@@ -90,6 +90,10 @@ QListWidget#nav             { background:#0d1117; border:none; border-right:1px 
 QListWidget#nav::item       { padding:14px 20px; color:#adb1b8; border:none; }
 QListWidget#nav::item:selected { background:#161b22; color:#58a6ff; border-left:3px solid #58a6ff; }
 QListWidget#nav::item:hover { background:#161b22; color:#e6edf3; }
+QListWidget#cat-nav          { background:#0d1117; border:none; outline:none; }
+QListWidget#cat-nav::item   { padding:18px 20px; color:#adb1b8; border:1px solid #30363d; border-radius:8px; margin:4px 0; }
+QListWidget#cat-nav::item:selected { background:#161b22; color:#58a6ff; border:1px solid #58a6ff; }
+QListWidget#cat-nav::item:hover { background:#161b22; color:#e6edf3; border-color:#58a6ff; }
 QRadioButton                { spacing:8px; color:#e6edf3; font-size:13px; }
 QRadioButton::indicator     { width:18px; height:18px; border-radius:9px; border:2px solid #30363d; background:#0d1117; }
 QRadioButton::indicator:checked { background:#58a6ff; border-color:#58a6ff; }
@@ -768,7 +772,7 @@ class SettingsDialog(QDialog):
         lay.addSpacing(20)
 
         # 类别列表
-        self.cat_list = QListWidget(objectName="nav")
+        self.cat_list = QListWidget(objectName="cat-nav")
         self.cat_list.addItem("🔧  引擎设置")
         self.cat_list.addItem("⚙️  通用设置")
         self.cat_list.setCurrentRow(0)
