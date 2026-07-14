@@ -91,3 +91,19 @@ Traceback (most recent call last):
   File "D:\qclawTranslate\diag_selection.py", line 37, in diag_get_clipboard_text
     ptr = kernel32.GlobalLock(h)
 ctypes.ArgumentError: argument 1: OverflowError: int too long to convert
+
+============================================================
+[ERROR] AttributeError: 'EngineSettingsDialog' object has no attribute '_test_translate'
+Traceback (most recent call last):
+  File "<string>", line 13, in <module>
+    d2 = EngineSettingsDialog()
+  File "D:\qclawTranslate\main.py", line 801, in __init__
+    self._build()
+    ~~~~~~~~~~~^^
+  File "D:\qclawTranslate\main.py", line 842, in _build
+    self.stack.addWidget(self._build_translate_page())
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\qclawTranslate\main.py", line 887, in _build_translate_page
+    tb.clicked.connect(self._test_translate)
+                       ^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'EngineSettingsDialog' object has no attribute '_test_translate'

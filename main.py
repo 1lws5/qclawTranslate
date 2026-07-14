@@ -743,6 +743,54 @@ class _NativeEventFilter(QAbstractNativeEventFilter):
 
 # ━━━━━━━━━━━━━━━━━━━━ 设置对话框 ━━━━━━━━━━━━━━━━━━━━
 class SettingsDialog(QDialog):
+    """外层设置主页：类别列表"""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setMinimumSize(420, 360)
+        self.resize(460, 420)
+        self._build()
+
+    def _build(self):
+        outer = QVBoxLayout(self); outer.setContentsMargins(0,0,0,0)
+        card = QFrame(objectName="card"); card.setStyleSheet("padding:0;")
+        lay = QVBoxLayout(card); lay.setSpacing(0); lay.setContentsMargins(28,24,28,24)
+
+        # 标题栏 + 关闭按钮
+        title_bar = QHBoxLayout()
+        title = QLabel("⚙️  设置"); title.setStyleSheet("font-size:18px;font-weight:bold;color:#e6edf3;")
+        title_bar.addWidget(title); title_bar.addStretch()
+        close_btn = QPushButton("✕"); close_btn.setStyleSheet("background:transparent;color:#adb1b8;font-size:16px;border:none;padding:4px 8px;")
+        close_btn.clicked.connect(self.reject)
+        title_bar.addWidget(close_btn)
+        lay.addLayout(title_bar)
+        lay.addSpacing(20)
+
+        # 类别列表
+        self.cat_list = QListWidget(objectName="nav")
+        self.cat_list.addItem("🔧  引擎设置")
+        self.cat_list.addItem("⚙️  通用设置")
+        self.cat_list.setCurrentRow(0)
+        self.cat_list.itemDoubleClicked.connect(self._on_cat_clicked)
+        lay.addWidget(self.cat_list, 1)
+
+        outer.addWidget(card)
+
+    def _on_cat_clicked(self, item):
+        text = item.text()
+        if "引擎" in text:
+            dlg = EngineSettingsDialog(self)
+            if dlg.exec_() == QDialog.Accepted:
+                pass
+        elif "通用" in text:
+            dlg = GeneralSettingsDialog(self)
+            if dlg.exec_() == QDialog.Accepted:
+                pass
+
+
+class EngineSettingsDialog(QDialog):
+    """引擎设置页：翻译/TTS/发音分析/实时字幕"""
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
@@ -769,7 +817,7 @@ class SettingsDialog(QDialog):
 
         # 标题栏 + 关闭按钮
         title_bar = QHBoxLayout()
-        title = QLabel("⚙️  设置"); title.setStyleSheet("font-size:18px;font-weight:bold;color:#e6edf3;")
+        title = QLabel("🔧  引擎设置"); title.setStyleSheet("font-size:18px;font-weight:bold;color:#e6edf3;")
         title_bar.addWidget(title); title_bar.addStretch()
         close_btn = QPushButton("✕"); close_btn.setStyleSheet("background:transparent;color:#adb1b8;font-size:16px;border:none;padding:4px 8px;")
         close_btn.clicked.connect(self.reject)
@@ -786,7 +834,6 @@ class SettingsDialog(QDialog):
         self.nav.addItem("🔊 TTS 引擎")
         self.nav.addItem("🎤 发音分析")
         self.nav.addItem("💬 实时字幕")
-        self.nav.addItem("⚙️ 通用设置")
         self.nav.setCurrentRow(0)
         self.nav.currentRowChanged.connect(self._on_nav_changed)
         body.addWidget(self.nav)
@@ -796,7 +843,6 @@ class SettingsDialog(QDialog):
         self.stack.addWidget(self._build_tts_page())
         self.stack.addWidget(self._build_pronunciation_page())
         self.stack.addWidget(self._build_subtitle_page())
-        self.stack.addWidget(self._build_general_page())
         body.addWidget(self.stack, 1)
 
         lay.addLayout(body, 1)
@@ -933,39 +979,6 @@ class SettingsDialog(QDialog):
         l.addWidget(info); l.addStretch()
         return page
 
-    # ── 通用设置面板 ──
-    def _build_general_page(self):
-        page = QWidget(); l = QVBoxLayout(page); l.setSpacing(20); l.setContentsMargins(24,16,24,16)
-        l.addWidget(QLabel("通用设置", objectName="section-title"))
-
-        self.boot = QCheckBox("开机自启")
-        self.boot.setChecked(self.cfg["general"]["start_on_boot"])
-        l.addWidget(self.boot)
-
-        self.tray_min = QCheckBox("最小化到托盘")
-        self.tray_min.setChecked(self.cfg["general"]["tray_minimize"])
-        l.addWidget(self.tray_min)
-
-        l.addSpacing(8)
-        theme_lbl = QLabel("主题"); theme_lbl.setStyleSheet("font-size:13px;font-weight:600;color:#e6edf3;")
-        l.addWidget(theme_lbl)
-        theme_row = QHBoxLayout()
-        self.theme_combo = QComboBox(); self.theme_combo.addItem("深色", "dark"); self.theme_combo.addItem("浅色", "light")
-        self.theme_combo.setCurrentIndex(self.theme_combo.findData(self.cfg["general"].get("theme", "dark")))
-        theme_row.addWidget(self.theme_combo, 1); theme_row.addStretch()
-        l.addLayout(theme_row)
-
-        lang_lbl = QLabel("界面语言"); lang_lbl.setStyleSheet("font-size:13px;font-weight:600;color:#e6edf3;")
-        l.addWidget(lang_lbl)
-        lang_row = QHBoxLayout()
-        self.lang_combo = QComboBox(); self.lang_combo.addItem("简体中文", "zh-CN"); self.lang_combo.addItem("English", "en-US")
-        self.lang_combo.setCurrentIndex(self.lang_combo.findData(self.cfg["general"].get("language", "zh-CN")))
-        lang_row.addWidget(self.lang_combo, 1); lang_row.addStretch()
-        l.addLayout(lang_row)
-
-        l.addStretch()
-        return page
-
     def _save(self):
         c = self.cfg
         # 翻译
@@ -982,12 +995,7 @@ class SettingsDialog(QDialog):
         _tts_cfg(c)["voice"]    = self.tts_voice.text().strip()
         c["tts"]["playback"]["speed"] = self.tts_speed.value() / 100.0
         c["tts"]["playback"]["cache_enabled"] = self.tts_cache.isChecked()
-        # 通用
-        c["general"]["start_on_boot"] = self.boot.isChecked()
-        c["general"]["tray_minimize"] = self.tray_min.isChecked()
-        c["general"]["theme"] = self.theme_combo.currentData()
-        c["general"]["language"] = self.lang_combo.currentData()
-        save_config(c); _toggle_startup(c["general"]["start_on_boot"])
+        save_config(c)
         self.accept()
 
     def _test_translate(self):
@@ -1052,6 +1060,82 @@ class SettingsDialog(QDialog):
             threading.Thread(target=lambda: play_audio(data), daemon=True).start()
         else:
             self.tts_test.setText(f"❌ {str(data)[:80]}"); self.tts_test.setStyleSheet("color:#f85149;font-size:11px;")
+
+
+class GeneralSettingsDialog(QDialog):
+    """通用设置页：开机自启/托盘/主题/语言"""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setMinimumSize(420, 400)
+        self.resize(460, 480)
+        self.cfg = load_config()
+        self._build()
+
+    def _build(self):
+        outer = QVBoxLayout(self); outer.setContentsMargins(0,0,0,0)
+        card = QFrame(objectName="card"); card.setStyleSheet("padding:0;")
+        lay = QVBoxLayout(card); lay.setSpacing(0); lay.setContentsMargins(28,24,28,24)
+
+        # 标题栏 + 关闭按钮
+        title_bar = QHBoxLayout()
+        title = QLabel("⚙️  通用设置"); title.setStyleSheet("font-size:18px;font-weight:bold;color:#e6edf3;")
+        title_bar.addWidget(title); title_bar.addStretch()
+        close_btn = QPushButton("✕"); close_btn.setStyleSheet("background:transparent;color:#adb1b8;font-size:16px;border:none;padding:4px 8px;")
+        close_btn.clicked.connect(self.reject)
+        title_bar.addWidget(close_btn)
+        lay.addLayout(title_bar)
+        lay.addSpacing(24)
+
+        # 内容
+        body = QVBoxLayout(); body.setSpacing(20); body.setContentsMargins(0,0,0,0)
+
+        self.boot = QCheckBox("开机自启")
+        self.boot.setChecked(self.cfg["general"]["start_on_boot"])
+        body.addWidget(self.boot)
+
+        self.tray_min = QCheckBox("最小化到托盘")
+        self.tray_min.setChecked(self.cfg["general"]["tray_minimize"])
+        body.addWidget(self.tray_min)
+
+        body.addSpacing(8)
+        theme_lbl = QLabel("主题"); theme_lbl.setStyleSheet("font-size:13px;font-weight:600;color:#e6edf3;")
+        body.addWidget(theme_lbl)
+        theme_row = QHBoxLayout()
+        self.theme_combo = QComboBox(); self.theme_combo.addItem("深色", "dark"); self.theme_combo.addItem("浅色", "light")
+        self.theme_combo.setCurrentIndex(self.theme_combo.findData(self.cfg["general"].get("theme", "dark")))
+        theme_row.addWidget(self.theme_combo, 1); theme_row.addStretch()
+        body.addLayout(theme_row)
+
+        lang_lbl = QLabel("界面语言"); lang_lbl.setStyleSheet("font-size:13px;font-weight:600;color:#e6edf3;")
+        body.addWidget(lang_lbl)
+        lang_row = QHBoxLayout()
+        self.lang_combo = QComboBox(); self.lang_combo.addItem("简体中文", "zh-CN"); self.lang_combo.addItem("English", "en-US")
+        self.lang_combo.setCurrentIndex(self.lang_combo.findData(self.cfg["general"].get("language", "zh-CN")))
+        lang_row.addWidget(self.lang_combo, 1); lang_row.addStretch()
+        body.addLayout(lang_row)
+
+        body.addStretch()
+        lay.addLayout(body, 1)
+
+        # 底部按钮
+        lay.addSpacing(20)
+        bl = QHBoxLayout(); bl.setContentsMargins(0,0,0,0); bl.addStretch()
+        c = QPushButton("取消"); c.setObjectName("btn-tts"); c.clicked.connect(self.reject)
+        s = QPushButton("保存"); s.setObjectName("btn-primary"); s.clicked.connect(self._save)
+        bl.addWidget(c); bl.addSpacing(10); bl.addWidget(s); lay.addLayout(bl)
+
+        outer.addWidget(card)
+
+    def _save(self):
+        c = self.cfg
+        c["general"]["start_on_boot"] = self.boot.isChecked()
+        c["general"]["tray_minimize"] = self.tray_min.isChecked()
+        c["general"]["theme"] = self.theme_combo.currentData()
+        c["general"]["language"] = self.lang_combo.currentData()
+        save_config(c); _toggle_startup(c["general"]["start_on_boot"])
+        self.accept()
 
 
 # ━━━━━━━━━━━━━━━━━━━━ 主窗口 ━━━━━━━━━━━━━━━━━━━━
@@ -1160,7 +1244,7 @@ class MainWindow(QMainWindow):
         mm.addSeparator()
         mm.addAction("🔍 划词翻译", self._clip_translate)
         mm.addAction("🔊 划词朗读", self._clip_tts); mm.addSeparator()
-        mm.addAction("⚙ 引擎设置", self._settings); mm.addSeparator()
+        mm.addAction("⚙ 设置", self._settings); mm.addSeparator()
         mm.addAction("❌ 退出", self._quit)
         self.tray.setContextMenu(mm)
         self.tray.activated.connect(lambda r: self._show() if r==QSystemTrayIcon.DoubleClick else None)
