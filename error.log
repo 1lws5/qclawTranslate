@@ -107,3 +107,11 @@ Traceback (most recent call last):
     tb.clicked.connect(self._test_translate)
                        ^^^^^^^^^^^^^^^^^^^^
 AttributeError: 'EngineSettingsDialog' object has no attribute '_test_translate'
+
+============================================================
+[ERROR] UnicodeEncodeError: 'gbk' codec can't encode character '\u25b6' in position 13: illegal multibyte sequence
+Traceback (most recent call last):
+  File "<string>", line 10, in <module>
+    print(f'AudioBar OK: {ab.btn_play.text()}')
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'gbk' codec can't encode character '\u25b6' in position 13: illegal multibyte sequence

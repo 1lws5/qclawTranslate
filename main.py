@@ -2,16 +2,17 @@
 """
 qclawTranslate v1.5.2 — 翻译+TTS（CosyVoice WS + MCI播放 + 原生热键）
 """
-import sys, os, json, ssl, time, tempfile, threading, traceback, uuid, ctypes, urllib.request, urllib.parse, urllib.error
+import sys, os, json, ssl, time, tempfile, threading, traceback, uuid, ctypes, urllib.request, urllib.parse, urllib.error, hashlib
 from ctypes import wintypes
 
 # 在主线程提前加载 comtypes，避免后台线程首次 import 触发 COM 初始化冲突
 import comtypes.client as _cc
 from comtypes.gen.UIAutomationClient import CUIAutomation8 as _CUIA8, IUIAutomationTextPattern as _IUIA_TP
 
-from PyQt5.QtCore    import Qt, QTimer, pyqtSignal, QObject, QAbstractNativeEventFilter
+from PyQt5.QtCore    import Qt, QTimer, pyqtSignal, QObject, QAbstractNativeEventFilter, QUrl
 from PyQt5.QtGui     import QFont, QIcon
 from PyQt5.QtWidgets import *
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 
 from config import load_config, save_config
 
@@ -305,6 +306,18 @@ def ai_translate(cfg, text, src_lang, tgt_lang, on_chunk=None):
 
 # ━━━━━━━━━━━━━━━━━━━━ TTS (CosyVoice WebSocket 流式) ━━━━━━━━━━━━━━━━━━━━
 
+def _cache_path(cfg, text):
+    """根据文本内容+音色+模型生成缓存文件路径。
+    返回绝对路径。缓存目录不存在时自动创建。
+    """
+    voice = _tts_cfg(cfg)["voice"]
+    model = _tts_cfg(cfg)["model"]
+    key = f"{text}_{voice}_{model}"
+    filename = hashlib.md5(key.encode("utf-8")).hexdigest() + ".mp3"
+    cache_dir = os.path.normpath(os.path.join(BASE_DIR, cfg["tts"]["playback"]["cache_dir"]))
+    os.makedirs(cache_dir, exist_ok=True)
+    return os.path.join(cache_dir, filename)
+
 def tts_synthesize(cfg, text, lang_hint=None):
     """
     CosyVoice WebSocket 流式 TTS。
@@ -396,27 +409,6 @@ def tts_synthesize(cfg, text, lang_hint=None):
         return False, "TTS 返回空音频"
     return True, combined
 
-
-def play_audio(audio_bytes):
-    """
-    MCI 无窗口播放 — 不弹任何播放器窗口。
-    在子线程同步播放，自动清理临时文件。
-    """
-    fd, path = tempfile.mkstemp(suffix=".mp3")
-    with os.fdopen(fd, "wb") as f:
-        f.write(audio_bytes)
-
-    def _mci_play():
-        alias = f"qtts_{uuid.uuid4().hex[:8]}"
-        try:
-            ctypes.windll.winmm.mciSendStringW(f'open "{path}" type MPEGVideo alias {alias}', None, 0, 0)
-            ctypes.windll.winmm.mciSendStringW(f'play {alias} wait', None, 0, 0)
-        finally:
-            ctypes.windll.winmm.mciSendStringW(f'close {alias}', None, 0, 0)
-            try: os.unlink(path)
-            except: pass
-
-    threading.Thread(target=_mci_play, daemon=True).start()
 
 
 # ━━━━━━━━━━━━━━━━━━━━ 后台线程 ━━━━━━━━━━━━━━━━━━━━
@@ -745,6 +737,121 @@ class _NativeEventFilter(QAbstractNativeEventFilter):
         return False, 0
 
 
+# ━━━━━━━━━━━━━━━━━━━━ AudioBar ━━━━━━━━━━━━━━━━━━━━
+
+class AudioBar(QWidget):
+    """音频播放控制栏：播放/暂停、进度条、倍速、循环、时间显示"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.player = QMediaPlayer()
+        self._loop = False
+        self._seeking = False
+        self._build()
+        self._connect()
+
+    def _build(self):
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(10)
+
+        self.btn_play = QPushButton("▶")
+        self.btn_play.setFixedSize(36, 36)
+        self.btn_play.setObjectName("btn-tts")
+        self.btn_play.clicked.connect(self._toggle_play)
+
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setRange(0, 0)
+        self.slider.sliderMoved.connect(self._seek)
+        self.slider.sliderPressed.connect(lambda: setattr(self, '_seeking', True))
+        self.slider.sliderReleased.connect(self._on_slider_released)
+
+        self.lbl_time = QLabel("00:00 / 00:00")
+        self.lbl_time.setFixedWidth(110)
+        self.lbl_time.setStyleSheet("color:#6e7681;font-size:11px;")
+
+        self.cmb_speed = QComboBox()
+        for s in ["0.5x", "0.75x", "1.0x", "1.25x", "1.5x", "2.0x"]:
+            self.cmb_speed.addItem(s)
+        self.cmb_speed.setCurrentText("1.0x")
+        self.cmb_speed.setFixedWidth(70)
+        self.cmb_speed.currentTextChanged.connect(self._on_speed_changed)
+
+        self.btn_loop = QPushButton("🔁")
+        self.btn_loop.setCheckable(True)
+        self.btn_loop.setFixedWidth(40)
+        self.btn_loop.setObjectName("btn-tts")
+        self.btn_loop.toggled.connect(self._on_loop_toggled)
+        self.btn_loop.setToolTip("单曲循环")
+
+        layout.addWidget(self.btn_play)
+        layout.addWidget(self.slider, 1)
+        layout.addWidget(self.lbl_time)
+        layout.addWidget(self.cmb_speed)
+        layout.addWidget(self.btn_loop)
+
+    def _connect(self):
+        self.player.positionChanged.connect(self._on_position_changed)
+        self.player.durationChanged.connect(self._on_duration_changed)
+        self.player.stateChanged.connect(self._on_state_changed)
+
+    def play_file(self, file_path):
+        url = QUrl.fromLocalFile(os.path.normpath(file_path))
+        self.player.setMedia(QMediaContent(url))
+        self.player.play()
+
+    def _toggle_play(self):
+        if self.player.state() == QMediaPlayer.PlayingState:
+            self.player.pause()
+        else:
+            self.player.play()
+
+    def _on_position_changed(self, pos):
+        if not self._seeking:
+            self.slider.setValue(pos)
+        self._update_time_label(pos, self.player.duration())
+
+    def _on_duration_changed(self, dur):
+        self.slider.setRange(0, dur)
+        self._update_time_label(self.player.position(), dur)
+
+    def _on_state_changed(self, state):
+        if state == QMediaPlayer.PlayingState:
+            self.btn_play.setText("⏸")
+        elif state == QMediaPlayer.PausedState:
+            self.btn_play.setText("▶")
+        elif state == QMediaPlayer.StoppedState:
+            self.btn_play.setText("▶")
+            if self._loop:
+                self.player.play()
+
+    def _seek(self, pos):
+        self._update_time_label(pos, self.player.duration())
+
+    def _on_slider_released(self):
+        pos = self.slider.value()
+        self.player.setPosition(pos)
+        self._seeking = False
+
+    def _on_speed_changed(self, text):
+        rate = float(text.rstrip("x"))
+        self.player.setPlaybackRate(rate)
+
+    def _on_loop_toggled(self, checked):
+        self._loop = checked
+
+    def _update_time_label(self, pos, dur):
+        def fmt(ms):
+            if ms < 0:
+                ms = 0
+            s = ms // 1000
+            return f"{s // 60:02d}:{s % 60:02d}"
+        self.lbl_time.setText(f"{fmt(pos)} / {fmt(dur)}")
+
+    def stop(self):
+        self.player.stop()
+
+
 # ━━━━━━━━━━━━━━━━━━━━ 设置对话框 ━━━━━━━━━━━━━━━━━━━━
 class SettingsDialog(QDialog):
     """外层设置主页：类别列表"""
@@ -1061,7 +1168,13 @@ class EngineSettingsDialog(QDialog):
         ok, data = r
         if ok:
             self.tts_test.setText("✓ 试听中…"); self.tts_test.setStyleSheet("color:#56d364;font-size:11px;")
-            threading.Thread(target=lambda: play_audio(data), daemon=True).start()
+            import tempfile
+            fd, tmp_path = tempfile.mkstemp(suffix=".mp3")
+            with os.fdopen(fd, "wb") as f:
+                f.write(data)
+            self._test_player = QMediaPlayer()
+            self._test_player.setMedia(QMediaContent(QUrl.fromLocalFile(os.path.normpath(tmp_path))))
+            self._test_player.play()
         else:
             self.tts_test.setText(f"❌ {str(data)[:80]}"); self.tts_test.setStyleSheet("color:#f85149;font-size:11px;")
 
@@ -1155,6 +1268,7 @@ class MainWindow(QMainWindow):
         self._last_text = ""
         self._translating = False
         self._tts_busy    = False
+        self._tts_text     = ""
 
     def _setup_window(self):
         self.setWindowTitle(f"qclawTranslate")
@@ -1222,6 +1336,10 @@ class MainWindow(QMainWindow):
         self.output_edit = QTextEdit(readOnly=True, placeholderText="📝 翻译结果将显示在这里…")
         self.output_edit.setMinimumHeight(110); ol.addWidget(self.output_edit)
         m.addWidget(oc,3)
+
+        # 音频控制栏
+        self.audio_bar = AudioBar()
+        m.addWidget(self.audio_bar)
 
         self.input_edit.textChanged.connect(lambda: self.cc.setText(f"{len(self.input_edit.toPlainText())} 字符"))
 
@@ -1417,10 +1535,22 @@ class MainWindow(QMainWindow):
         text = text.strip()
         if not text:
             return
+
+        self._tts_text = text
+
+        # 缓存启用时先查缓存
+        cache_enabled = self.cfg["tts"]["playback"]["cache_enabled"]
+        if cache_enabled:
+            cache_file = _cache_path(self.cfg, text)
+            if os.path.exists(cache_file):
+                self.status.setText("🔊 播放中…（缓存）")
+                self.audio_bar.play_file(cache_file)
+                return
+
         api_key = _tts_cfg(self.cfg)["api_key"].strip()
         ws_url  = _tts_cfg(self.cfg)["ws_url"].strip()
         if not api_key or not ws_url:
-            QMessageBox.warning(self,"提示","请先在 ⚙ 设置中配置 TTS 引擎\n（WebSocket 地址 + Key + 模型名）")
+            QMessageBox.warning(self, "提示", "请先在 ⚙ 设置中配置 TTS 引擎\n（WebSocket 地址 + Key + 模型名）")
             return
 
         self._tts_busy = True
@@ -1434,13 +1564,32 @@ class MainWindow(QMainWindow):
         self._tts_busy = False
         ok, data = result
         if ok:
+            cache_enabled = self.cfg["tts"]["playback"]["cache_enabled"]
+            if cache_enabled:
+                try:
+                    cache_file = _cache_path(self.cfg, self._tts_text)
+                    with open(cache_file, "wb") as f:
+                        f.write(data)
+                    self.audio_bar.play_file(cache_file)
+                except Exception:
+                    import tempfile
+                    fd, tmp_path = tempfile.mkstemp(suffix=".mp3")
+                    with os.fdopen(fd, "wb") as f:
+                        f.write(data)
+                    self.audio_bar.play_file(tmp_path)
+            else:
+                import tempfile
+                fd, tmp_path = tempfile.mkstemp(suffix=".mp3")
+                with os.fdopen(fd, "wb") as f:
+                    f.write(data)
+                self.audio_bar.play_file(tmp_path)
+
             self.status.setText("🔊 播放中…")
-            play_audio(data)
             QTimer.singleShot(2000, lambda: self.status.setText("") if self.status.text().startswith("🔊") else None)
         else:
             err = str(data)
             self.status.setText(f"✗ {err}")
-            QMessageBox.warning(self,"TTS 失败", err)
+            QMessageBox.warning(self, "TTS 失败", err)
 
     # ── 交换 ──
     def _swap(self):
