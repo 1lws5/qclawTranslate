@@ -756,7 +756,7 @@ class AudioBar(QWidget):
         layout.setSpacing(10)
 
         self.btn_play = QPushButton("播放")
-        self.btn_play.setFixedSize(36, 36)
+        self.btn_play.setFixedSize(80, 36)
         self.btn_play.setObjectName("btn-tts")
         self.btn_play.clicked.connect(self._toggle_play)
 
