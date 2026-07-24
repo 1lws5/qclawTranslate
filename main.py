@@ -755,7 +755,7 @@ class AudioBar(QWidget):
         layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(10)
 
-        self.btn_play = QPushButton("▶ 播放")
+        self.btn_play = QPushButton("播放")
         self.btn_play.setFixedSize(36, 36)
         self.btn_play.setObjectName("btn-tts")
         self.btn_play.clicked.connect(self._toggle_play)
@@ -773,13 +773,13 @@ class AudioBar(QWidget):
         speed_lbl = QLabel("倍速")
         speed_lbl.setStyleSheet("color:#6e7681;font-size:11px;")
         self.cmb_speed = QComboBox()
-        for s in ["0.5x", "0.75x", "1.0x", "1.25x", "1.5x", "2.0x"]:
+        for s in ["0.25x", "0.5x", "0.75x", "1.0x", "1.25x", "1.5x", "2.0x"]:
             self.cmb_speed.addItem(s)
         self.cmb_speed.setCurrentText("1.0x")
-        self.cmb_speed.setFixedWidth(70)
+        self.cmb_speed.setFixedWidth(90)
         self.cmb_speed.currentTextChanged.connect(self._on_speed_changed)
 
-        self.btn_loop = QPushButton("🔁 循环")
+        self.btn_loop = QPushButton("循环")
         self.btn_loop.setCheckable(True)
         self.btn_loop.setObjectName("btn-tts")
         self.btn_loop.toggled.connect(self._on_loop_toggled)
@@ -819,11 +819,11 @@ class AudioBar(QWidget):
 
     def _on_state_changed(self, state):
         if state == QMediaPlayer.PlayingState:
-            self.btn_play.setText("⏸ 暂停")
+            self.btn_play.setText("暂停")
         elif state == QMediaPlayer.PausedState:
-            self.btn_play.setText("▶ 播放")
+            self.btn_play.setText("播放")
         elif state == QMediaPlayer.StoppedState:
-            self.btn_play.setText("▶ 播放")
+            self.btn_play.setText("播放")
             if self._loop:
                 self.player.play()
 
