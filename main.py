@@ -796,6 +796,7 @@ class AudioBar(QWidget):
         self.player.positionChanged.connect(self._on_position_changed)
         self.player.durationChanged.connect(self._on_duration_changed)
         self.player.stateChanged.connect(self._on_state_changed)
+        self.player.mediaStatusChanged.connect(self._on_media_status_changed)
 
     def play_file(self, file_path):
         url = QUrl.fromLocalFile(os.path.normpath(file_path))
@@ -824,8 +825,8 @@ class AudioBar(QWidget):
             self.btn_play.setText("播放")
         elif state == QMediaPlayer.StoppedState:
             self.btn_play.setText("播放")
-            if self._loop:
-                self.player.play()
+            # 循环逻辑移到 _on_media_status_changed
+            # StoppedState 在 Windows WMF backend 下会触发多次
 
     def _seek(self, pos):
         self._update_time_label(pos, self.player.duration())
@@ -841,6 +842,13 @@ class AudioBar(QWidget):
 
     def _on_loop_toggled(self, checked):
         self._loop = checked
+
+    def _on_media_status_changed(self, status):
+        # 循环在 EndOfMedia 时触发，不在 StoppedState 里做
+        # Windows WMF backend 播放结束顺序：EndOfMedia → Invalid → StoppedState
+        # EndOfMedia 只触发一次，在这里 play() 不会被干扰
+        if status == QMediaPlayer.EndOfMedia and self._loop:
+            self.player.play()
 
     def _update_time_label(self, pos, dur):
         def fmt(ms):
